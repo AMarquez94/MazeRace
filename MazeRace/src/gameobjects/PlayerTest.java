@@ -34,14 +34,12 @@ public class PlayerTest extends SimpleApplication {
     private RigidBodyControl landscape;
     private Spatial sceneModel;
     //player
-    private Node player, playerNode;
-    private BetterCharacterControl playerControl;
-    private AnimControl animationControl;
-    private AnimChannel animationChannel;
+    private Player player;
     //player movement
     private boolean left = false, right = false, up = false, down = false;
     private Vector3f walkDirection = new Vector3f(0, 0, 0);
     private float airTime = 0;
+    private final float MOVE_SPEED = 800f;
 
     public static void main(String[] args) {
         PlayerTest app = new PlayerTest();
@@ -50,7 +48,7 @@ public class PlayerTest extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        flyCam.setMoveSpeed(100);
+        //flyCam.setEnabled(false);
 
         bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
@@ -60,41 +58,16 @@ public class PlayerTest extends SimpleApplication {
         setUpWorld();
         setUpCharacter();
         setUpKeys();
-
-        flyCam.setEnabled(false);
-        chaseCam = new ChaseCamera(cam, playerNode, inputManager);
+        
+        
     }
 
     private void setUpCharacter() {
-        // Load model
-        player = (Node) assetManager.loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
-        playerNode = new Node(); // You can create a new node to wrap your player to adjust the location. (This allows you to solve issues with character sinking into floor, etc.)
-        playerNode.attachChild(player); // add it to the wrapper
-        player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
-        player.setLocalScale(0.5f); // optionally adjust scale of model
-
-        //AnimControl control setup animation
-        animationControl = player.getControl(AnimControl.class);
-        animationControl.addListener(playerAnimListener);
-        animationChannel = animationControl.createChannel();
-        animationChannel.setAnim("stand");
-        playerControl = new BetterCharacterControl(1.5f, 6f, 1f); // construct character. (If your character bounces, try increasing height and weight.)
-        playerNode.addControl(playerControl); // attach to wrapper
-
-        // set basic physical properties
-        playerControl.setJumpForce(new Vector3f(0, 5f, 0));
-        playerControl.setGravity(new Vector3f(0, 1f, 0));
-        playerControl.warp(new Vector3f(0, 10, 10)); // warp character into landscape at particular location
-
-        // add to physics state
-        bas.getPhysicsSpace().add(playerControl);
-        bas.getPhysicsSpace().addAll(playerNode);
-        rootNode.attachChild(playerNode);
+        player = new Player(this);
+        player.addAnimEventListener(playerAnimListener);
+        player.addToPhysicsSpace(bas);
         
-        System.out.println("Available animations for this model are:");
-        for(String c : animationControl.getAnimationNames()) {
-            System.out.println(c);
-        }
+        rootNode.attachChild(player);
     }
     private AnimEventListener playerAnimListener = new AnimEventListener() {
         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
@@ -140,7 +113,7 @@ public class PlayerTest extends SimpleApplication {
                     down = false;
                 }
             } else if (name.equals("CharJump")) {
-                playerControl.jump();
+                player.getCharacterControl().jump();
             }
         }
     };
@@ -173,7 +146,7 @@ public class PlayerTest extends SimpleApplication {
         camLeft.normalizeLocal();
         walkDirection.set(0, 0, 0);
 
-        if (!playerControl.isOnGround()) { // use !character.isOnGround() if the character is a BetterCharacterControl type.
+        if (!player.getCharacterControl().isOnGround()) {
             airTime += tpf;
         } else {
             airTime = 0;
@@ -194,22 +167,25 @@ public class PlayerTest extends SimpleApplication {
 
         //change animation
         if (walkDirection.lengthSquared() == 0) { //Use lengthSquared() (No need for an extra sqrt())
-            if (!"stand".equals(animationChannel.getAnimationName())) {
-                animationChannel.setAnim("stand", 1f);
+            if (!"stand".equals(player.getAnimChannel().getAnimationName())) {
+                player.getAnimChannel().setAnim("stand", 1f);
             }
         } else {
-            playerControl.setViewDirection(walkDirection);
+            player.getCharacterControl().setViewDirection(walkDirection);
             if (airTime > .5f) {
-                if (!"stand".equals(animationChannel.getAnimationName())) {
-                    animationChannel.setAnim("stand");
+                if (!"stand".equals(player.getAnimChannel().getAnimationName())) {
+                    player.getAnimChannel().setAnim("stand");
                 }
-            } else if (!"Walk".equals(animationChannel.getAnimationName())) {
-                animationChannel.setAnim("Walk", 0.7f);
+            } else if (!"Walk".equals(player.getAnimChannel().getAnimationName())) {
+                player.getAnimChannel().setAnim("Walk", 0.7f);
             }
         }
-
-        walkDirection.multLocal(500f).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
-        playerControl.setWalkDirection(walkDirection); // THIS IS WHERE THE WALKING HAPPENS
+        
+        walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
+        player.getCharacterControl().setWalkDirection(walkDirection); // THIS IS WHERE THE WALKING HAPPENS
+        //cam.lookAtDirection(player.getCharacterControl().getViewDirection(), new Vector3f());
+        Vector3f player_pos = player.getWorldTranslation();
+        cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
     }
 
     @Override

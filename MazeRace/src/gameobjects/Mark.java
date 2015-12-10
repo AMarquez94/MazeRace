@@ -16,10 +16,10 @@ public class Mark extends Geometry {
 
     private Team team;
 
-    public Mark(String name, Team team, SimpleApplication app) {
+    public Mark(Team team, SimpleApplication app) {
         this.team = team;
         Sphere sphere = new Sphere(30, 30, 1f);
-        this.setName(name);
+        this.setName("Mark");
         this.setMesh(sphere);
         
         //Create material depending on team

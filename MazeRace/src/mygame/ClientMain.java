@@ -6,20 +6,29 @@ import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.collision.CollisionResult;
+import com.jme3.collision.CollisionResults;
+import com.jme3.font.BitmapText;
 import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
+import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
+import com.jme3.scene.Node;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.terrain.heightmap.AbstractHeightMap;
 import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
+import enums.Team;
+import gameobjects.Mark;
 import gameobjects.Player;
 
 /**
@@ -29,8 +38,11 @@ import gameobjects.Player;
  */
 public class ClientMain extends SimpleApplication {
 
+    private static ClientMain app;
     private BulletAppState bas;
     private ChaseCamera chaseCam;
+    //scene graph
+    private Node markNode = new Node("Marks");
     //terrain
     private TerrainQuad terrain;
     private Material mat_terrain;
@@ -43,7 +55,7 @@ public class ClientMain extends SimpleApplication {
     private final float MOVE_SPEED = 800f;
 
     public static void main(String[] args) {
-        ClientMain app = new ClientMain();
+        app = new ClientMain();
         app.start();
     }
 
@@ -55,14 +67,20 @@ public class ClientMain extends SimpleApplication {
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
 
+        setUpGraph();
         setUpLight();
         setUpWorld();
-        setUpCharacter();
+        setUpCharacter(Team.Red);
         setUpKeys();
+        initCrossHairs();
     }
 
-    private void setUpCharacter() {
-        player = new Player(this);
+    private void setUpGraph() {
+        rootNode.attachChild(markNode);
+    }
+
+    private void setUpCharacter(Team team) {
+        player = new Player(team, this);
         player.addAnimEventListener(playerAnimListener);
         player.addToPhysicsSpace(bas);
 
@@ -82,9 +100,13 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharForward", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("CharBackward", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
-        inputManager.addListener(playerMoveListener, "CharLeft", "CharRight");
-        inputManager.addListener(playerMoveListener, "CharForward", "CharBackward", "CharJump");
+        inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
+        inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
+        inputManager.addListener(playerShootListener, "Mark");
     }
+    /*
+     * Handles player movement actions.
+     */
     private ActionListener playerMoveListener = new ActionListener() {
         public void onAction(String name, boolean isPressed, float tpf) {
             if (name.equals("CharLeft")) {
@@ -116,6 +138,37 @@ public class ClientMain extends SimpleApplication {
             }
         }
     };
+    /*
+     * Handles mark and attack actions.
+     */
+    private ActionListener playerShootListener = new ActionListener() {
+        public void onAction(String name, boolean keyPressed, float tpf) {
+            if (name.equals("Mark") && !keyPressed) {
+                CollisionResults results = new CollisionResults();
+                Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                terrain.collideWith(ray, results);
+                
+                System.out.println(results.size());
+
+                if (results.size() > 0) {
+                    CollisionResult closest = results.getClosestCollision();
+                    Mark mark = new Mark(player.getTeam(), app);
+                    mark.setLocalTranslation(closest.getContactPoint());
+                    markNode.attachChild(mark); //todo mark node
+                }
+            }
+        }
+    };
+
+    private void initCrossHairs() {
+        setDisplayStatView(false);
+        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        BitmapText ch = new BitmapText(guiFont, false);
+        ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
+        ch.setText("+"); // crosshairs
+        ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
+        guiNode.attachChild(ch);
+    }
 
     private void setUpWorld() {
         mat_terrain = new Material(assetManager,
@@ -155,7 +208,7 @@ public class ClientMain extends SimpleApplication {
          * prepared heightmap itself.
          */
         int patchSize = 65;
-        terrain = new TerrainQuad("my terrain", patchSize, 257, heightmap.getHeightMap());
+        terrain = new TerrainQuad("Maze", patchSize, 257, heightmap.getHeightMap());
 
         terrain.setMaterial(mat_terrain);
         terrain.setLocalTranslation(0, -100, 0);

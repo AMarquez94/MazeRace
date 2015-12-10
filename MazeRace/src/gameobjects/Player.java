@@ -8,9 +8,10 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import enums.Team;
 
 /**
- *
+ * Represents a player.
  * @author root
  */
 public class Player extends Node {
@@ -22,9 +23,11 @@ public class Player extends Node {
     //Player settings
     private final float JUMP_FORCE = 10f;
     private final float GRAVITY = 1f;
+    private Team team;
     
 
-    public Player(SimpleApplication app) {
+    public Player(Team team, SimpleApplication app) {
+        this.team = team;
         // Load model
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
         this.attachChild(player); // add it to the wrapper
@@ -47,6 +50,10 @@ public class Player extends Node {
         for (String c : animationControl.getAnimationNames()) {
             System.out.println(c);
         }
+    }
+    
+    public Team getTeam() {
+        return this.team;
     }
     
     public void addToPhysicsSpace(BulletAppState bas) {

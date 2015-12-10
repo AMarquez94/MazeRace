@@ -18,8 +18,11 @@ import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
+import com.jme3.network.Client;
+import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
@@ -30,6 +33,11 @@ import com.jme3.texture.Texture;
 import enums.Team;
 import gameobjects.Mark;
 import gameobjects.Player;
+import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import mygame.Networking.*;
 
 /**
  * MazeRace (client).
@@ -37,8 +45,12 @@ import gameobjects.Player;
  * @author
  */
 public class ClientMain extends SimpleApplication {
-
+    
+    
     private static ClientMain app;
+    private Client client;
+    private BlockingQueue<String> messageQueue;
+    
     private BulletAppState bas;
     private ChaseCamera chaseCam;
     //scene graph
@@ -55,17 +67,28 @@ public class ClientMain extends SimpleApplication {
     private final float MOVE_SPEED = 800f;
 
     public static void main(String[] args) {
+        
+        Networking.initialiseSerializables();
         app = new ClientMain();
         app.start();
     }
 
     @Override
     public void simpleInitApp() {
+        
+        try {
+            client = Network.connectToServer("127.0.0.1", Networking.PORT);
+            client.start();
+        } catch (IOException ex) {
+            Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
+        }
         //flyCam.setEnabled(false);
 
         bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
+        
+        this.pauseOnFocus = false;
 
         setUpGraph();
         setUpLight();
@@ -73,6 +96,9 @@ public class ClientMain extends SimpleApplication {
         setUpCharacter(Team.Red);
         setUpKeys();
         initCrossHairs();
+        
+        Thread t = new Thread(new Sender());
+        t.start();
     }
 
     private void setUpGraph() {
@@ -286,5 +312,40 @@ public class ClientMain extends SimpleApplication {
     @Override
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
+    }
+    
+    //TEMPORAL
+    private class Sender implements Runnable {
+
+        
+        public Sender(){
+            
+        }
+        
+        public void run() {
+           while (true){
+               try {
+                   Thread.sleep((long) 1*1000);
+                   Quaternion q = cam.getRotation();
+                   float[][] rotation = new float[1][4];
+                   rotation[0][0] = q.getX();
+                   rotation[0][1] = q.getY();
+                   rotation[0][2] = q.getZ();
+                   rotation[0][3] = q.getW();
+                   client.send(new Moving(player.getWorldTranslation(),rotation));
+                   
+                   
+                   
+               } catch (InterruptedException ex) {
+                   Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
+               }
+           }
+        }
+    }
+    
+    @Override
+    public void destroy() {
+        client.close();
+        super.destroy();
     }
 }

@@ -91,17 +91,17 @@ public class Networking {
     @Serializable
     public static class ConnectionAccepted extends AbstractMessage{
         
-        private int[] teamsAvailable;
+        private String[] teamsAvailable;
         
         public ConnectionAccepted(){
             
         }
         
-        public ConnectionAccepted(int[] teamsAvailable){
+        public ConnectionAccepted(String[] teamsAvailable){
             this.teamsAvailable = teamsAvailable;
         }
         
-        public int[] getTeamsAvailable(){
+        public String[] getTeamsAvailable(){
             return teamsAvailable;
         }
     }
@@ -117,14 +117,14 @@ public class Networking {
         
         private int id;
         private String nickname;
-        private int team;
+        private String team;
         private Vector3f position;
         
         public NewPlayerConnected(){
             
         }
         
-        public NewPlayerConnected(int id, String nickname, int team, Vector3f position){
+        public NewPlayerConnected(int id, String nickname, String team, Vector3f position){
             this.id = id;
             this.nickname = nickname;
             this.team = team;
@@ -139,7 +139,7 @@ public class Networking {
             return nickname;
         }
 
-        public int getTeam() {
+        public String getTeam() {
             return team;
         }
 
@@ -397,17 +397,17 @@ public class Networking {
      */
     @Serializable
     public static class End extends AbstractMessage{
-        int winnerTeam;
+        String winnerTeam;
         
         public End(){
             
         }
         
-        public End(int team){
+        public End(String team){
             this.winnerTeam = team;
         }
 
-        public int getWinnerTeam() {
+        public String getWinnerTeam() {
             return winnerTeam;
         }
     }

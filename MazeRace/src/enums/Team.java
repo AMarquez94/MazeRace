@@ -2,7 +2,7 @@ package enums;
 
 /**
  * Represents the teams.
- * @author root
+ * @author 
  */
 public enum Team {
     Red, Blue

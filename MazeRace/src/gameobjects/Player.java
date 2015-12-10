@@ -13,10 +13,12 @@ import enums.Team;
 
 /**
  * Represents a player.
+ *
  * @author root
  */
 public class Player extends Node {
     //Objects
+
     private Node player;
     private BetterCharacterControl characterControl;
     private AnimControl animationControl;
@@ -25,7 +27,6 @@ public class Player extends Node {
     private final float JUMP_FORCE = 10f;
     private final float GRAVITY = 1f;
     private Team team;
-    
 
     public Player(Team team, SimpleApplication app) {
         this.team = team;
@@ -52,37 +53,35 @@ public class Player extends Node {
             System.out.println(c);
         }
     }
-    
+
     public Team getTeam() {
         return this.team;
     }
-    
+
     public ColorRGBA getTeamColor() {
-        if(this.team == Team.Red) {
+        if (this.team == Team.Red) {
             return ColorRGBA.Red;
-        }
-        else if (this.team == Team.Blue) {
+        } else if (this.team == Team.Blue) {
             return ColorRGBA.Blue;
-        }
-        //Default case. For other values.
+        } //Default case. For other values.
         else {
             return ColorRGBA.White;
         }
     }
-    
+
     public void addToPhysicsSpace(BulletAppState bas) {
         bas.getPhysicsSpace().add(characterControl);
         bas.getPhysicsSpace().addAll(this);
     }
-    
+
     public void addAnimEventListener(AnimEventListener listener) {
         animationControl.addListener(listener);
     }
-    
+
     public BetterCharacterControl getCharacterControl() {
         return characterControl;
     }
-    
+
     public AnimChannel getAnimChannel() {
         return animationChannel;
     }

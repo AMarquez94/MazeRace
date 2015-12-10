@@ -5,7 +5,6 @@ import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Sphere;
-import enums.Team;
 
 /**
  * Represents the mark the players can place on the environment.

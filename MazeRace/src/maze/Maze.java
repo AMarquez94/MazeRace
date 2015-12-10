@@ -9,8 +9,10 @@ import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
  
-/** Sample 10 - How to create fast-rendering terrains from heightmaps,
-and how to use texture splatting to make the terrain look good.  */
+/** 
+ * 
+ * @author dominik
+ */
 public class Maze extends SimpleApplication {
  
   private TerrainQuad terrain;
@@ -31,7 +33,7 @@ public class Maze extends SimpleApplication {
  
     /** 1.1) Add ALPHA map (for red-blue-green coded splat textures) */
     mat_terrain.setTexture("Alpha", assetManager.loadTexture(
-            "Textures/Terrain/splat/alphamap.png"));
+            "Textures/maze_color_test.png"));
  
     /** 1.2) Add GRASS texture into the red layer (Tex1). */
     Texture grass = assetManager.loadTexture(
@@ -58,7 +60,7 @@ public class Maze extends SimpleApplication {
     AbstractHeightMap heightmap = null;
     //assetManager.registerLocator("assets\\Textures", FileLocator.class);
     Texture heightMapImage = assetManager.loadTexture(
-            "Textures/Heightmap1.png");
+            "Textures/maze_low.png");
     heightmap = new ImageBasedHeightMap(heightMapImage.getImage());
     heightmap.load();
  

@@ -202,7 +202,7 @@ public class ClientMain extends SimpleApplication {
                 "Common/MatDefs/Terrain/Terrain.j3md");
 
         mat_terrain.setTexture("Alpha", assetManager.loadTexture(
-                "Textures/Terrain/splat/alphamap.png"));
+                "Textures/maze_color_test.png"));
 
         Texture grass = assetManager.loadTexture(
                 "Textures/Terrain/splat/grass.jpg");
@@ -222,7 +222,7 @@ public class ClientMain extends SimpleApplication {
         mat_terrain.setTexture("Tex3", rock);
         mat_terrain.setFloat("Tex3Scale", 128f);
 
-        Texture heightMapImage = assetManager.loadTexture("Textures/Heightmap1.png");
+        Texture heightMapImage = assetManager.loadTexture("Textures/maze_low.png");
         AbstractHeightMap heightmap = new ImageBasedHeightMap(heightMapImage.getImage());
         heightmap.load();
 

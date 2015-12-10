@@ -31,6 +31,11 @@ public class Networking {
         Serializer.registerClass(PlayerRespawn.class);
         Serializer.registerClass(PlayerShooted.class);
         Serializer.registerClass(TreasurePicked.class);
+        Serializer.registerClass(Moving.class);
+        Serializer.registerClass(MarkInput.class);
+        Serializer.registerClass(PutMark.class);
+        Serializer.registerClass(Start.class);
+        Serializer.registerClass(End.class);
     }
     
     /**
@@ -338,6 +343,7 @@ public class Networking {
      * Client -> Server
      * Client says to the server that it is alive
      */
+    @Serializable
     public static class Alive extends AbstractMessage{
         public Alive(){
             
@@ -345,6 +351,112 @@ public class Networking {
     }
     
     /**
-     * 
+     * Client -> Server
+     * Client says to the server that its new position and rotation is "position"
+     * and "rotation"
      */
+    @Serializable
+    public static class Moving extends AbstractMessage{
+        
+        Vector3f position;
+        float[][] rotation;
+        
+        public Moving(){
+            
+        }
+        
+        public Moving(Vector3f position, float[][] rotation){
+            this.position = position;
+            this.rotation = rotation;
+        }
+
+        public Vector3f getPosition() {
+            return position;
+        }
+
+        public float[][] getRotation() {
+            return rotation;
+        }
+    }
+    
+    /**
+     * Server -> Client
+     * Server says to the clients that the game has started
+     */
+    @Serializable
+    public static class Start extends AbstractMessage{
+        public Start(){
+            
+        }
+    }
+    
+    /**
+     * Server -> Clients
+     * Server says to the clients that the game has ended, and which team was the
+     * winner
+     */
+    @Serializable
+    public static class End extends AbstractMessage{
+        int winnerTeam;
+        
+        public End(){
+            
+        }
+        
+        public End(int team){
+            this.winnerTeam = team;
+        }
+
+        public int getWinnerTeam() {
+            return winnerTeam;
+        }
+    }
+    
+    /**
+     * Client -> Server
+     * Client says to the server that wants to paint the wall
+     */
+    @Serializable
+    public static class MarkInput extends AbstractMessage{
+        int mark;
+        
+        public MarkInput(){
+            
+        }
+        
+        public MarkInput(int mark){
+            this.mark = mark;
+        }
+
+        public int getMark() {
+            return mark;
+        }
+    }
+    
+    /**
+     * Server -> Client
+     * Server says to the clients that a new mark has been put in position "position
+     */
+    @Serializable
+    public static class PutMark extends AbstractMessage{
+        Vector3f position;
+        int mark;
+        
+        public PutMark(){
+            
+        }
+        
+        public PutMark(Vector3f position, int mark){
+            this.position = position;
+            this.mark = mark;
+        }
+
+        public Vector3f getPosition() {
+            return position;
+        }
+
+        public int getMark() {
+            return mark;
+        }
+    }
 }

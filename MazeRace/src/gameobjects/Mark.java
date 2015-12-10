@@ -14,25 +14,20 @@ import enums.Team;
  */
 public class Mark extends Geometry {
 
-    private Team team;
+    private ColorRGBA color;
 
-    public Mark(Team team, SimpleApplication app) {
-        this.team = team;
+    public Mark(ColorRGBA color, SimpleApplication app) {
+        this.color = color;
         Sphere sphere = new Sphere(30, 30, 1f);
         this.setName("Mark");
         this.setMesh(sphere);
         
-        //Create material depending on team
         Material mark_mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-        if(this.team == Team.Red) {
-            mark_mat.setColor("Color", ColorRGBA.Red);
-        } else {
-            mark_mat.setColor("Color", ColorRGBA.Blue);
-        }    
+        mark_mat.setColor("Color", this.color);
         this.setMaterial(mark_mat);
     }
    
-    public Team getTeam() {
-        return this.team;
+    public ColorRGBA getColor() {
+        return this.color;
     }
 }

@@ -6,6 +6,7 @@ import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.BetterCharacterControl;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import enums.Team;
@@ -54,6 +55,19 @@ public class Player extends Node {
     
     public Team getTeam() {
         return this.team;
+    }
+    
+    public ColorRGBA getTeamColor() {
+        if(this.team == Team.Red) {
+            return ColorRGBA.Red;
+        }
+        else if (this.team == Team.Blue) {
+            return ColorRGBA.Blue;
+        }
+        //Default case. For other values.
+        else {
+            return ColorRGBA.White;
+        }
     }
     
     public void addToPhysicsSpace(BulletAppState bas) {

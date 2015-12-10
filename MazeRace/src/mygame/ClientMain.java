@@ -152,7 +152,7 @@ public class ClientMain extends SimpleApplication {
 
                 if (results.size() > 0) {
                     CollisionResult closest = results.getClosestCollision();
-                    Mark mark = new Mark(player.getTeam(), app);
+                    Mark mark = new Mark(player.getTeamColor(), app);
                     mark.setLocalTranslation(closest.getContactPoint());
                     markNode.attachChild(mark); //todo mark node
                 }
@@ -164,6 +164,7 @@ public class ClientMain extends SimpleApplication {
         setDisplayStatView(false);
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         BitmapText ch = new BitmapText(guiFont, false);
+        ch.setColor(player.getTeamColor());
         ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
         ch.setText("+"); // crosshairs
         ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);

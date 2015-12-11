@@ -5,7 +5,6 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
@@ -21,20 +20,18 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
+import com.jme3.network.AbstractMessage;
 import com.jme3.network.Client;
 import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
-import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
-import com.jme3.terrain.heightmap.AbstractHeightMap;
-import com.jme3.terrain.heightmap.ImageBasedHeightMap;
-import com.jme3.texture.Texture;
 import enums.Team;
 import gameobjects.Mark;
 import gameobjects.Player;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import mygame.Networking.*;
@@ -45,12 +42,10 @@ import mygame.Networking.*;
  * @author
  */
 public class ClientMain extends SimpleApplication {
-    
-    
+
     private static ClientMain app;
     private Client client;
-    private BlockingQueue<String> messageQueue;
-    
+    private LinkedBlockingQueue<AbstractMessage> messageQueue;
     private BulletAppState bas;
     private ChaseCamera chaseCam;
     //scene graph
@@ -67,7 +62,7 @@ public class ClientMain extends SimpleApplication {
     private final float MOVE_SPEED = 800f;
 
     public static void main(String[] args) {
-        
+
         Networking.initialiseSerializables();
         app = new ClientMain();
         app.start();
@@ -75,19 +70,12 @@ public class ClientMain extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        
-        try {
-            client = Network.connectToServer("127.0.0.1", Networking.PORT);
-            client.start();
-        } catch (IOException ex) {
-            Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
-        }
         //flyCam.setEnabled(false);
 
         bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
-        
+
         this.pauseOnFocus = false;
 
         setUpGraph();
@@ -97,6 +85,20 @@ public class ClientMain extends SimpleApplication {
         setUpKeys();
         initCrossHairs();
         
+        setUpNetworking();
+    }
+
+    private void setUpNetworking() {
+        //Start connection
+        try {
+            client = Network.connectToServer("127.0.0.1", Networking.PORT);
+            client.start();
+        } catch (IOException ex) {
+            Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        //Message sending
+        messageQueue = new LinkedBlockingQueue<AbstractMessage>();
         Thread t = new Thread(new Sender());
         t.start();
     }
@@ -173,7 +175,7 @@ public class ClientMain extends SimpleApplication {
                 CollisionResults results = new CollisionResults();
                 Ray ray = new Ray(cam.getLocation(), cam.getDirection());
                 terrain.collideWith(ray, results);
-                
+
                 System.out.println(results.size());
 
                 if (results.size() > 0) {
@@ -196,7 +198,6 @@ public class ClientMain extends SimpleApplication {
         ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
         guiNode.attachChild(ch);
     }
-
 
     private void setUpLight() {
         // We add light so we see the scene
@@ -233,7 +234,7 @@ public class ClientMain extends SimpleApplication {
         if (down) {
             walkDirection.addLocal(camDir.negate());
         }
-        
+
         //change animation
         if (walkDirection.lengthSquared() == 0) { //Use lengthSquared() (No need for an extra sqrt())
             if (!"stand".equals(player.getAnimChannel().getAnimationName())) {
@@ -262,35 +263,46 @@ public class ClientMain extends SimpleApplication {
         //TODO: add render code
     }
     
-    //TEMPORAL
+    /*
+     * Adds message to the sending queue.
+     */
+    private void sendMessage(AbstractMessage msg) {
+        messageQueue.add(msg);
+    }
+
+    /*
+     * Periodically sends messages to the server.
+     */
     private class Sender implements Runnable {
 
-        
-        public Sender(){
-            
+        public Sender() {
         }
-        
+
         public void run() {
-           while (true){
-               try {
-                   Thread.sleep((long) 1*1000);
-                   Quaternion q = cam.getRotation();
-                   float[][] rotation = new float[1][4];
-                   rotation[0][0] = q.getX();
-                   rotation[0][1] = q.getY();
-                   rotation[0][2] = q.getZ();
-                   rotation[0][3] = q.getW();
-                   client.send(new Moving(player.getWorldTranslation(),rotation));
-                   
-                   
-                   
-               } catch (InterruptedException ex) {
-                   Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
-               }
-           }
+            while (true) {
+                try {
+                    Quaternion q = cam.getRotation();
+                    float[] rotation = new float[4];
+                                    
+                    rotation[0] = q.getX();
+                    rotation[1] = q.getY();
+                    rotation[2] = q.getZ();
+                    rotation[3] = q.getW();
+                    client.send(new Moving(player.getWorldTranslation(), rotation));
+
+                    //Send all messages in queue
+                    while (messageQueue.size() > 0) {
+                        client.send(messageQueue.poll());
+                    }
+                    
+                    Thread.sleep((long) 1 * 1000);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
         }
     }
-    
+
     @Override
     public void destroy() {
         client.close();

@@ -31,11 +31,14 @@ public class Networking {
         Serializer.registerClass(PlayerRespawn.class);
         Serializer.registerClass(PlayerShooted.class);
         Serializer.registerClass(TreasurePicked.class);
-        Serializer.registerClass(Moving.class);
+        Serializer.registerClass(PlayerMoved.class);
+        Serializer.registerClass(MovingPlayers.class);
         Serializer.registerClass(MarkInput.class);
         Serializer.registerClass(PutMark.class);
         Serializer.registerClass(Start.class);
         Serializer.registerClass(End.class);
+        Serializer.registerClass(Pause.class);
+        Serializer.registerClass(Resume.class);
     }
     
     /**
@@ -91,17 +94,17 @@ public class Networking {
     @Serializable
     public static class ConnectionAccepted extends AbstractMessage{
         
-        private String[] teamsAvailable;
+        private Enum[] teamsAvailable;
         
         public ConnectionAccepted(){
             
         }
         
-        public ConnectionAccepted(String[] teamsAvailable){
+        public ConnectionAccepted(Enum[] teamsAvailable){
             this.teamsAvailable = teamsAvailable;
         }
         
-        public String[] getTeamsAvailable(){
+        public Enum[] getTeamsAvailable(){
             return teamsAvailable;
         }
     }
@@ -117,14 +120,14 @@ public class Networking {
         
         private int id;
         private String nickname;
-        private String team;
+        private Enum team;
         private Vector3f position;
         
         public NewPlayerConnected(){
             
         }
         
-        public NewPlayerConnected(int id, String nickname, String team, Vector3f position){
+        public NewPlayerConnected(int id, String nickname, Enum team, Vector3f position){
             this.id = id;
             this.nickname = nickname;
             this.team = team;
@@ -139,7 +142,7 @@ public class Networking {
             return nickname;
         }
 
-        public String getTeam() {
+        public Enum getTeam() {
             return team;
         }
 
@@ -352,22 +355,24 @@ public class Networking {
     
     /**
      * Client -> Server
-     * Client says to the server that its new position and rotation is "position"
-     * and "rotation"
+     * Client says to the server that its new position, rotation and current
+     * animation is "position", "rotation" and "animation"
      */
     @Serializable
-    public static class Moving extends AbstractMessage{
+    public static class PlayerMoved extends AbstractMessage{
         
         Vector3f position;
         float[][] rotation;
+        String animation;
         
-        public Moving(){
+        public PlayerMoved(){
             
         }
         
-        public Moving(Vector3f position, float[][] rotation){
+        public PlayerMoved(Vector3f position, float[][] rotation, String animation){
             this.position = position;
             this.rotation = rotation;
+            this.animation = animation;
         }
 
         public Vector3f getPosition() {
@@ -376,6 +381,53 @@ public class Networking {
 
         public float[][] getRotation() {
             return rotation;
+        }
+
+        public String getAnimation() {
+            return animation;
+        }
+    }
+    
+    /**
+     * Server -> Client
+     * Server says the other clients that the player with ID "playerID" is in
+     * position "position", with rotation "rotation" and performing the animation
+     * "animation"
+     */
+    @Serializable
+    public static class MovingPlayers extends AbstractMessage{
+        
+        int playerID;
+        Vector3f position;
+        float[][] rotation;
+        String animation;
+        
+        public MovingPlayers(){
+            
+        }
+        
+        public MovingPlayers(int playerID, Vector3f position, float[][] rotation, String animation){
+            this.playerID = playerID;
+            this.position = position;
+            this.rotation = rotation;
+            this.animation = animation;
+        }
+        
+        
+        public int getPlayerID() {
+            return playerID;
+        }
+
+        public Vector3f getPosition() {
+            return position;
+        }
+
+        public float[][] getRotation() {
+            return rotation;
+        }
+
+        public String getAnimation() {
+            return animation;
         }
     }
     
@@ -397,17 +449,17 @@ public class Networking {
      */
     @Serializable
     public static class End extends AbstractMessage{
-        String winnerTeam;
+        Enum winnerTeam;
         
         public End(){
             
         }
         
-        public End(String team){
+        public End(Enum team){
             this.winnerTeam = team;
         }
 
-        public String getWinnerTeam() {
+        public Enum getWinnerTeam() {
             return winnerTeam;
         }
     }
@@ -458,5 +510,31 @@ public class Networking {
         public int getMark() {
             return mark;
         }
+    }
+    
+    /**
+     * Server -> Client
+     * Server says to the clients that the game has been paused
+     */
+    @Serializable
+    public static class Pause extends AbstractMessage{
+        
+        public Pause(){
+            
+        }
+        
+    }
+    
+    /**
+     * Server -> Client
+     * Server says to the clients that the game has been resumed
+     */
+    @Serializable
+    public static class Resume extends AbstractMessage{
+        
+        public Resume(){
+            
+        }
+        
     }
 }

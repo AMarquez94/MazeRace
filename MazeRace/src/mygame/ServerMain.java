@@ -10,7 +10,6 @@ import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.light.AmbientLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
@@ -19,6 +18,7 @@ import com.jme3.network.MessageListener;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
 import com.jme3.renderer.RenderManager;
+import com.jme3.system.JmeContext;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.terrain.heightmap.AbstractHeightMap;
@@ -27,7 +27,6 @@ import com.jme3.texture.Texture;
 import enums.Team;
 import gameobjects.Player;
 import java.io.IOException;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import mygame.Networking.*;
@@ -38,21 +37,32 @@ import mygame.Networking.*;
  */
 public class ServerMain extends SimpleApplication {
     
+    //CONSTANTS
+    private final int MAX_PLAYERS = 6;
+    
+    //GLOBAL VARIABLES
     private Server server;
     private HostedConnection[] hostedConnections;
+    private BulletAppState bas;
+    private String[] nicknames;
+    private int players;
+    private Vector3f[] initialPositions;
+    private int redPlayers;
+    private int bluePlayers;
+            
+    //TEMPORAL
     
     private TerrainQuad terrain;
     private Material mat_terrain;
-    
-    private BulletAppState bas;
-    
     private Player player;
+    
+    //
 
     
     public static void main(String[] args) {
         Networking.initialiseSerializables();
         ServerMain app = new ServerMain();
-        app.start();
+        app.start(JmeContext.Type.Headless);
     }
     
     public ServerMain(){
@@ -78,7 +88,17 @@ public class ServerMain extends SimpleApplication {
         setUpWorld();
         setUpLight();
         setUpCharacter(Team.Red);
+        setUpInitialPositions();
         server.addMessageListener(new MessageHandler());
+        players = 0;
+        redPlayers = 0;
+        bluePlayers = 0;
+        nicknames = new String[MAX_PLAYERS];
+        for(int i = 0; i < nicknames.length; i++){
+            nicknames[i] = "";
+        }
+        hostedConnections = new HostedConnection[MAX_PLAYERS];
+        
         
         this.pauseOnFocus = false;
     }
@@ -177,28 +197,98 @@ public class ServerMain extends SimpleApplication {
         super.destroy();
     }
     
+    private boolean repeatedNickname(String nickname) {
+        int i = 0;
+        boolean rep = false;
+        while (i < nicknames.length && !rep) {
+            if (nicknames[i] != null && nicknames[i].equals(nickname)) {
+                rep = true;
+            } else {
+                i++;
+            }
+        }
+        return rep;
+    }
+    
+     private int connectPlayer(String nickname, HostedConnection s) {
+        int i = 0;
+        boolean find = false;
+        while (i < nicknames.length && !find) {
+            if (nicknames[i].equals("")) {
+                nicknames[i] = nickname;
+                hostedConnections[i] = s;
+                players++;
+                find = true;
+            } else {
+                i++;
+            }
+        }
+        return i;
+    }
+     
+    private void setUpInitialPositions(){
+        initialPositions = new Vector3f[MAX_PLAYERS];
+        for(int i = 0; i < MAX_PLAYERS; i++){
+            initialPositions[i] = new Vector3f(0,0,0);
+        }
+    }
+    
+    private Team chooseTeam(int id){
+        if(redPlayers > bluePlayers){
+            bluePlayers++;
+            return Team.Blue;
+        }
+        
+        else if(bluePlayers > redPlayers){
+            redPlayers++;
+            return Team.Red;
+        }
+        //TODO RANDOM
+        else{
+            if(Math.random()>=0.5){
+                bluePlayers++;
+                return Team.Blue;
+            }
+            else{
+                redPlayers++;
+                return Team.Red;
+            }
+        }
+    }
+     
+    
+    
     //TEMPORAL
     private class MessageHandler implements MessageListener<HostedConnection> {
 
         public void messageReceived(HostedConnection source, Message m) {
 
-            if (m instanceof Moving) {
-                Moving message = (Moving)m;
-                
-                final Vector3f position = message.getPosition();
-                float[][] r = message.getRotation();
-                
-                final Quaternion q = new Quaternion(r[0][0],r[0][1],r[0][2],r[0][3]);
-                ServerMain.this.enqueue(new Callable() {
-                    public Object call() throws Exception {
-                        player.setLocalTranslation(position);
-                        cam.setRotation(q);
-                        return null;
+            if (m instanceof Connect) {
+                Connect message = (Connect) m;
+                String nickname = message.getNickname();
+                if (players != MAX_PLAYERS) {
+                    if (nickname.length() > 0 && nickname.length() <= 8) {
+                        if (!repeatedNickname(nickname)) {
+                            int idNew = connectPlayer(nickname, source);
+                            server.broadcast(Filters.in(hostedConnections),
+                                    new NewPlayerConnected(idNew, nickname, 
+                                    chooseTeam(idNew), initialPositions[idNew]));
+                        } else {
+                            server.broadcast(Filters.equalTo(source), 
+                                    new ConnectionRejected("Nickname already in use"));
+                        }
+                    } else {
+                        server.broadcast(Filters.equalTo(source),
+                                new ConnectionRejected("Bad nickname"));
                     }
-                });
-                
+                } else {
+                    server.broadcast(Filters.equalTo(source),
+                            new ConnectionRejected("Maximal number of clients already connected"));
+                }
             }
         }
     }
+    
+    
 
 }

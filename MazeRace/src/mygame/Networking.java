@@ -8,6 +8,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.network.AbstractMessage;
 import com.jme3.network.serializing.Serializable;
 import com.jme3.network.serializing.Serializer;
+import enums.Team;
 
 /**
  *
@@ -21,7 +22,6 @@ public class Networking {
         Serializer.registerClass(Alive.class);
         Serializer.registerClass(Connect.class);
         Serializer.registerClass(ConnectionRejected.class);
-        Serializer.registerClass(ConnectionAccepted.class);
         Serializer.registerClass(DeadPlayer.class);
         Serializer.registerClass(DisconnectedPlayer.class);
         Serializer.registerClass(FireInput.class);
@@ -86,28 +86,6 @@ public class Networking {
         }
     }
     
-    /**
-     * Server -> Client
-     * Server says client that it connected, and what teams are
-     * available
-     */
-    @Serializable
-    public static class ConnectionAccepted extends AbstractMessage{
-        
-        private Enum[] teamsAvailable;
-        
-        public ConnectionAccepted(){
-            
-        }
-        
-        public ConnectionAccepted(Enum[] teamsAvailable){
-            this.teamsAvailable = teamsAvailable;
-        }
-        
-        public Enum[] getTeamsAvailable(){
-            return teamsAvailable;
-        }
-    }
     
     /**
      * Server -> Clients
@@ -120,14 +98,14 @@ public class Networking {
         
         private int id;
         private String nickname;
-        private Enum team;
+        private Team team;
         private Vector3f position;
         
         public NewPlayerConnected(){
             
         }
         
-        public NewPlayerConnected(int id, String nickname, Enum team, Vector3f position){
+        public NewPlayerConnected(int id, String nickname, Team team, Vector3f position){
             this.id = id;
             this.nickname = nickname;
             this.team = team;
@@ -142,7 +120,7 @@ public class Networking {
             return nickname;
         }
 
-        public Enum getTeam() {
+        public Team getTeam() {
             return team;
         }
 
@@ -449,17 +427,17 @@ public class Networking {
      */
     @Serializable
     public static class End extends AbstractMessage{
-        Enum winnerTeam;
+        Team winnerTeam;
         
         public End(){
             
         }
         
-        public End(Enum team){
+        public End(Team team){
             this.winnerTeam = team;
         }
 
-        public Enum getWinnerTeam() {
+        public Team getWinnerTeam() {
             return winnerTeam;
         }
     }

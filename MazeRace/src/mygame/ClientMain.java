@@ -53,7 +53,7 @@ import mygame.Networking.*;
 /**
  * MazeRace (client).
  *
- * @author
+ * @author NVE Project
  */
 public class ClientMain extends SimpleApplication {
 
@@ -133,7 +133,7 @@ public class ClientMain extends SimpleApplication {
     private void setUpNetworking() {
         //Start connection
         try {
-            client = Network.connectToServer("127.0.0.1", Networking.PORT);
+            client = Network.connectToServer(Networking.HOST, Networking.PORT);
             client.start();
         } catch (IOException ex) {
             Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);

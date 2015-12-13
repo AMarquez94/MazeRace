@@ -33,7 +33,7 @@ import mygame.Networking.*;
 
 /**
  * test
- * @author normenhansen
+ * @author NVE Project
  */
 public class ServerMain extends SimpleApplication {
     

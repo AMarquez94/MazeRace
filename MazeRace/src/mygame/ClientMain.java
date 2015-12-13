@@ -23,6 +23,7 @@ import com.jme3.input.event.TouchEvent;
 import com.jme3.light.AmbientLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.jme3.network.AbstractMessage;
@@ -321,6 +322,9 @@ public class ClientMain extends SimpleApplication {
             //cam.lookAtDirection(player.getCharacterControl().getViewDirection(), new Vector3f());
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
+
+            //send new state to server TODO: rotation
+            sendMessage(new PlayerMoved(getPlayer().getPosition(), null, getPlayer().getAnimChannel().getAnimationName()));
         }
     }
 
@@ -449,7 +453,17 @@ public class ClientMain extends SimpleApplication {
                         }
                     });
                 }
-
+            } else if (m instanceof MovingPlayers) {
+                final MovingPlayers message = (MovingPlayers) m;
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        //TODO set rotation
+                        Player p = players.get(message.getPlayerID());
+                        p.setPosition(message.getPosition());
+                        p.getAnimChannel().setAnim(message.getAnimation());
+                        return null;
+                    }
+                });
             }
         }
     }

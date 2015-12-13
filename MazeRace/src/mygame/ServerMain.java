@@ -20,6 +20,7 @@ import com.jme3.terrain.heightmap.AbstractHeightMap;
 import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
 import enums.Team;
+import gameobjects.Player;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,7 +59,7 @@ public class ServerMain extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        Networking.initialiseSerializables();
+        Networking.initialiseSerializables(); 
 
         try {
             server = Network.createServer(Networking.PORT);
@@ -171,7 +172,7 @@ public class ServerMain extends SimpleApplication {
     }
 
     /*
-     * Connects a player and returns its id.
+     * Connects a player and returns its id
      */
     private int connectPlayer(String nickname, HostedConnection s) {
         int i = 0;
@@ -196,7 +197,7 @@ public class ServerMain extends SimpleApplication {
         }
     }
 
-    private Team chooseTeam() {
+    private Team chooseTeam(int id) {
         if (redPlayers > bluePlayers) {
             bluePlayers++;
             return Team.Blue;
@@ -229,7 +230,7 @@ public class ServerMain extends SimpleApplication {
                             int idNew = connectPlayer(nickname, source);
                             server.broadcast(Filters.in(hostedConnections),
                                     new NewPlayerConnected(idNew, nickname,
-                                    chooseTeam(), initialPositions[idNew]));
+                                    chooseTeam(idNew), initialPositions[idNew]));
                         } else {
                             server.broadcast(Filters.equalTo(source),
                                     new ConnectionRejected("Nickname already in use"));

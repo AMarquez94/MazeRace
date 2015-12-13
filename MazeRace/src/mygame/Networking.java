@@ -15,11 +15,11 @@ import enums.Team;
  * @author NVE Project
  */
 public class Networking {
-    
+
     public static final int PORT = 6000;
     public static final String HOST = "127.0.0.1";
-    
-    public static void initialiseSerializables(){
+
+    public static void initialiseSerializables() {
         Serializer.registerClass(Alive.class);
         Serializer.registerClass(Connect.class);
         Serializer.registerClass(ConnectionRejected.class);
@@ -41,44 +41,40 @@ public class Networking {
         Serializer.registerClass(Pause.class);
         Serializer.registerClass(Resume.class);
     }
-    
+
     /**
-     * Client -> Server
-     * A player with "nickname" nickname wants to connect
+     * Client -> Server A player with "nickname" nickname wants to connect
      */
     @Serializable
-    public static class Connect extends AbstractMessage{
-        
+    public static class Connect extends AbstractMessage {
+
         private String nickname;
-        
-        public Connect(){
-            
+
+        public Connect() {
         }
-        
-        public Connect(String nickname){
+
+        public Connect(String nickname) {
             this.nickname = nickname;
         }
-        
-        public String getNickname(){
+
+        public String getNickname() {
             return nickname;
         }
     }
-    
+
     /**
-     * Server -> Client
-     * Server says to the client that it can't connect because of
-     * given reason
+     * Server -> Client Server says to the client that it can't connect because
+     * of given reason
      */
     @Serializable
-    public static class ConnectionRejected extends AbstractMessage{
-        
+    public static class ConnectionRejected extends AbstractMessage {
+
         private String reason;
-        
-        public ConnectionRejected(){
-            
+
+        public ConnectionRejected() {
         }
-        
-        public ConnectionRejected(String reason){
+
+        public ConnectionRejected(String reason) {
             this.reason = reason;
         }
 
@@ -86,27 +82,24 @@ public class Networking {
             return reason;
         }
     }
-    
-    
+
     /**
-     * Server -> Clients
-     * Server says to all connected clients that client with id "id",
-     * nickname "nickname" and team with index "team" has connected and spawn
-     * in position "position 
+     * Server -> Clients Server says to all connected clients that client with
+     * id "id", nickname "nickname" and team with index "team" has connected and
+     * spawn in position "position
      */
     @Serializable
-    public static class NewPlayerConnected extends AbstractMessage{
-        
+    public static class NewPlayerConnected extends AbstractMessage {
+
         private int id;
         private String nickname;
         private Team team;
         private Vector3f position;
-        
-        public NewPlayerConnected(){
-            
+
+        public NewPlayerConnected() {
         }
-        
-        public NewPlayerConnected(int id, String nickname, Team team, Vector3f position){
+
+        public NewPlayerConnected(int id, String nickname, Team team, Vector3f position) {
             this.id = id;
             this.nickname = nickname;
             this.team = team;
@@ -129,38 +122,34 @@ public class Networking {
             return position;
         }
     }
-    
+
     /**
-     * Client -> Server
-     * Client informs the Server that he wants to shoot
+     * Client -> Server Client informs the Server that he wants to shoot
      */
     @Serializable
-    public static class FireInput extends AbstractMessage{
-        
-        public FireInput(){
-            
+    public static class FireInput extends AbstractMessage {
+
+        public FireInput() {
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Server informs all the clients that player with ID "playerID" has
-     * shooted bullet with ID "bulletID" from position "position with 
-     * direction "direction"
+     * Server -> Clients Server informs all the clients that player with ID
+     * "playerID" has shooted bullet with ID "bulletID" from position "position
+     * with direction "direction"
      */
     @Serializable
-    public static class Firing extends AbstractMessage{
-        
+    public static class Firing extends AbstractMessage {
+
         private int playerID;
         private int bulletID;
         private Vector3f position;
         private Vector3f direction;
-        
-        public Firing(){
-            
+
+        public Firing() {
         }
-        
-        public Firing(int playerID, int bulletID, Vector3f position, Vector3f direction){
+
+        public Firing(int playerID, int bulletID, Vector3f position, Vector3f direction) {
             this.playerID = playerID;
             this.bulletID = bulletID;
             this.position = position;
@@ -183,23 +172,22 @@ public class Networking {
             return direction;
         }
     }
-    
+
     /**
-     * Server -> Client
-     * Server says to the clients that the Player with index "shootedPlayerId"
-     * has been shooted by another with index "shootingPlayerId"
+     * Server -> Client Server says to the clients that the Player with index
+     * "shootedPlayerId" has been shooted by another with index
+     * "shootingPlayerId"
      */
     @Serializable
-    public static class PlayerShooted extends AbstractMessage{
-        
+    public static class PlayerShooted extends AbstractMessage {
+
         private int shootedPlayerId;
         private int shootingPlayerId;
-        
-        public PlayerShooted(){
-            
+
+        public PlayerShooted() {
         }
-        
-        public PlayerShooted(int shootedPlayerId, int shootingPlayerId){
+
+        public PlayerShooted(int shootedPlayerId, int shootingPlayerId) {
             this.shootedPlayerId = shootedPlayerId;
             this.shootingPlayerId = shootingPlayerId;
         }
@@ -212,21 +200,20 @@ public class Networking {
             return shootingPlayerId;
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Server says the clients that player with index deadPlayer has died
+     * Server -> Clients Server says the clients that player with index
+     * deadPlayer has died
      */
     @Serializable
-    public static class DeadPlayer extends AbstractMessage{
-        
+    public static class DeadPlayer extends AbstractMessage {
+
         private int deadPlayer;
-        
-        public DeadPlayer(){
-            
+
+        public DeadPlayer() {
         }
-        
-        public DeadPlayer(int deadPlayer){
+
+        public DeadPlayer(int deadPlayer) {
             this.deadPlayer = deadPlayer;
         }
 
@@ -234,23 +221,21 @@ public class Networking {
             return deadPlayer;
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Server says to the clients that player with index "playerRespawn" has
-     * respawned in position "position"
+     * Server -> Clients Server says to the clients that player with index
+     * "playerRespawn" has respawned in position "position"
      */
     @Serializable
-    public static class PlayerRespawn extends AbstractMessage{
-        
+    public static class PlayerRespawn extends AbstractMessage {
+
         private int playerRespawn;
         private Vector3f position;
-        
-        public PlayerRespawn(){
-            
+
+        public PlayerRespawn() {
         }
-        
-        public PlayerRespawn(int playerRespawn, Vector3f position){
+
+        public PlayerRespawn(int playerRespawn, Vector3f position) {
             this.playerRespawn = playerRespawn;
             this.position = position;
         }
@@ -263,33 +248,31 @@ public class Networking {
             return position;
         }
     }
-    
+
     /**
-     * Client -> Server
-     * Client says to the Server that it pressed the pick treasure input
+     * Client -> Server Client says to the Server that it pressed the pick
+     * treasure input
      */
     @Serializable
-    public static class PickTreasureInput extends AbstractMessage{
-        
-        public PickTreasureInput(){
-            
+    public static class PickTreasureInput extends AbstractMessage {
+
+        public PickTreasureInput() {
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Server says that Client with id "playerId" picked the treasure
+     * Server -> Clients Server says that Client with id "playerId" picked the
+     * treasure
      */
     @Serializable
-    public static class TreasurePicked extends AbstractMessage{
-        
+    public static class TreasurePicked extends AbstractMessage {
+
         private int playerID;
-        
-        public TreasurePicked(){
-            
+
+        public TreasurePicked() {
         }
-        
-        public TreasurePicked(int playerID){
+
+        public TreasurePicked(int playerID) {
             this.playerID = playerID;
         }
 
@@ -297,58 +280,53 @@ public class Networking {
             return playerID;
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Server says to the Clients that player with id "playerID" has been
-     * disconnected
+     * Server -> Clients Server says to the Clients that player with id
+     * "playerID" has been disconnected
      */
     @Serializable
-    public static class DisconnectedPlayer extends AbstractMessage{
-        
+    public static class DisconnectedPlayer extends AbstractMessage {
+
         private int playerID;
-        
-        public DisconnectedPlayer(){
-            
+
+        public DisconnectedPlayer() {
         }
-        
-        public DisconnectedPlayer(int playerID){
+
+        public DisconnectedPlayer(int playerID) {
             this.playerID = playerID;
         }
 
         public int getPlayerID() {
             return playerID;
         }
-    } 
-    
+    }
+
     /**
-     * Client -> Server
-     * Client says to the server that it is alive
+     * Client -> Server Client says to the server that it is alive
      */
     @Serializable
-    public static class Alive extends AbstractMessage{
-        public Alive(){
-            
+    public static class Alive extends AbstractMessage {
+
+        public Alive() {
         }
     }
-    
+
     /**
-     * Client -> Server
-     * Client says to the server that its new position, rotation and current
-     * animation is "position", "rotation" and "animation"
+     * Client -> Server Client says to the server that its new position,
+     * rotation and current animation is "position", "rotation" and "animation"
      */
     @Serializable
-    public static class PlayerMoved extends AbstractMessage{
-        
+    public static class PlayerMoved extends AbstractMessage {
+
         Vector3f position;
         float[] rotation;
         String animation;
-        
-        public PlayerMoved(){
-            
+
+        public PlayerMoved() {
         }
-        
-        public PlayerMoved(Vector3f position, float[] rotation, String animation){
+
+        public PlayerMoved(Vector3f position, float[] rotation, String animation) {
             this.position = position;
             this.rotation = rotation;
             this.animation = animation;
@@ -366,33 +344,30 @@ public class Networking {
             return animation;
         }
     }
-    
+
     /**
-     * Server -> Client
-     * Server says the other clients that the player with ID "playerID" is in
-     * position "position", with rotation "rotation" and performing the animation
-     * "animation"
+     * Server -> Client Server says the other clients that the player with ID
+     * "playerID" is in position "position", with rotation "rotation" and
+     * performing the animation "animation"
      */
     @Serializable
-    public static class MovingPlayers extends AbstractMessage{
-        
+    public static class MovingPlayers extends AbstractMessage {
+
         int playerID;
         Vector3f position;
         float[] rotation;
         String animation;
-        
-        public MovingPlayers(){
-            
+
+        public MovingPlayers() {
         }
-        
-        public MovingPlayers(int playerID, Vector3f position, float[] rotation, String animation){
+
+        public MovingPlayers(int playerID, Vector3f position, float[] rotation, String animation) {
             this.playerID = playerID;
             this.position = position;
             this.rotation = rotation;
             this.animation = animation;
         }
-        
-        
+
         public int getPlayerID() {
             return playerID;
         }
@@ -409,32 +384,30 @@ public class Networking {
             return animation;
         }
     }
-    
+
     /**
-     * Server -> Client
-     * Server says to the clients that the game has started
+     * Server -> Client Server says to the clients that the game has started
      */
     @Serializable
-    public static class Start extends AbstractMessage{
-        public Start(){
-            
+    public static class Start extends AbstractMessage {
+
+        public Start() {
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Server says to the clients that the game has ended, and which team was the
-     * winner
+     * Server -> Clients Server says to the clients that the game has ended, and
+     * which team was the winner
      */
     @Serializable
-    public static class End extends AbstractMessage{
+    public static class End extends AbstractMessage {
+
         Team winnerTeam;
-        
-        public End(){
-            
+
+        public End() {
         }
-        
-        public End(Team team){
+
+        public End(Team team) {
             this.winnerTeam = team;
         }
 
@@ -442,42 +415,31 @@ public class Networking {
             return winnerTeam;
         }
     }
-    
+
     /**
-     * Client -> Server
-     * Client says to the server that wants to paint the wall
+     * Client -> Server Client says to the server that wants to paint the wall
      */
     @Serializable
-    public static class MarkInput extends AbstractMessage{
-        int mark;
-        
-        public MarkInput(){
-            
-        }
-        
-        public MarkInput(int mark){
-            this.mark = mark;
-        }
+    public static class MarkInput extends AbstractMessage {
 
-        public int getMark() {
-            return mark;
+        public MarkInput() {
         }
     }
-    
+
     /**
-     * Server -> Client
-     * Server says to the clients that a new mark has been put in position "position
+     * Server -> Client Server says to the clients that a new mark has been put
+     * in position "position
      */
     @Serializable
-    public static class PutMark extends AbstractMessage{
+    public static class PutMark extends AbstractMessage {
+
         Vector3f position;
         int mark;
-        
-        public PutMark(){
-            
+
+        public PutMark() {
         }
-        
-        public PutMark(Vector3f position, int mark){
+
+        public PutMark(Vector3f position, int mark) {
             this.position = position;
             this.mark = mark;
         }
@@ -490,30 +452,25 @@ public class Networking {
             return mark;
         }
     }
-    
+
     /**
-     * Server -> Client
-     * Server says to the clients that the game has been paused
+     * Server -> Client Server says to the clients that the game has been paused
      */
     @Serializable
-    public static class Pause extends AbstractMessage{
-        
-        public Pause(){
-            
+    public static class Pause extends AbstractMessage {
+
+        public Pause() {
         }
-        
     }
-    
+
     /**
-     * Server -> Client
-     * Server says to the clients that the game has been resumed
+     * Server -> Client Server says to the clients that the game has been
+     * resumed
      */
     @Serializable
-    public static class Resume extends AbstractMessage{
-        
-        public Resume(){
-            
+    public static class Resume extends AbstractMessage {
+
+        public Resume() {
         }
-        
     }
 }

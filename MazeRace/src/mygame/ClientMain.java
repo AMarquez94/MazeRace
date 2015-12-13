@@ -226,18 +226,20 @@ public class ClientMain extends SimpleApplication {
     private ActionListener playerShootListener = new ActionListener() {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (name.equals("Mark") && !keyPressed) {
+                //Delete this section when implemented in server -----
                 CollisionResults results = new CollisionResults();
                 Ray ray = new Ray(cam.getLocation(), cam.getDirection());
                 terrain.collideWith(ray, results);
 
-                System.out.println(results.size());
 
                 if (results.size() > 0) {
                     CollisionResult closest = results.getClosestCollision();
                     Mark mark = new Mark(getPlayer().getTeamColor(), app);
                     mark.setLocalTranslation(closest.getContactPoint());
                     markNode.attachChild(mark);
-                }
+                }//-----
+
+                sendMessage(new MarkInput());
             }
         }
     };
@@ -461,6 +463,16 @@ public class ClientMain extends SimpleApplication {
                         Player p = players.get(message.getPlayerID());
                         p.setPosition(message.getPosition());
                         p.getAnimChannel().setAnim(message.getAnimation());
+                        return null;
+                    }
+                });
+            } else if (m instanceof PutMark) {
+                final PutMark message = (PutMark) m;
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        Mark mark = new Mark(getPlayer().getTeamColor(), app);
+                        mark.setLocalTranslation(message.getPosition());
+                        markNode.attachChild(mark);
                         return null;
                     }
                 });

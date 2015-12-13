@@ -20,7 +20,6 @@ import com.jme3.terrain.heightmap.AbstractHeightMap;
 import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
 import enums.Team;
-import gameobjects.Player;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -227,6 +226,7 @@ public class ServerMain extends SimpleApplication {
                 if (players != MAX_PLAYERS) {
                     if (nickname.length() > 0 && nickname.length() <= 8) {
                         if (!repeatedNickname(nickname)) {
+                            //TODO ID must be saved
                             int idNew = connectPlayer(nickname, source);
                             server.broadcast(Filters.in(hostedConnections),
                                     new NewPlayerConnected(idNew, nickname,

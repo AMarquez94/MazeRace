@@ -43,6 +43,7 @@ import enums.Team;
 import gameobjects.Mark;
 import gameobjects.Player;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -61,27 +62,28 @@ public class ClientMain extends SimpleApplication {
     private Client client;
     private LinkedBlockingQueue<AbstractMessage> messageQueue;
     private BulletAppState bas;
-    private ChaseCamera chaseCam;
     //scene graph
     private Node markNode = new Node("Marks");
     //terrain
     private TerrainQuad terrain;
     private Material mat_terrain;
-    //player
-    private Player player;
-    private int id;
-    private String nickname;
+    //own id
+    private static int id;
+    //players
+    private HashMap<Integer, Player> players = new HashMap<Integer, Player>();
     //player movement
     private boolean left = false, right = false, up = false, down = false;
     private Vector3f walkDirection = new Vector3f(0, 0, 0);
     private float airTime = 0;
     private final float MOVE_SPEED = 800f;
-    //Nickname Variables
+    //Game state
+    boolean playing = false;
+    //Nickname Variables (used in nicknameHUD)
+    private String nickname;
     private boolean goodNickname;
     private float counter;
-    private MyListenerClass initialListener;
+    private NicknameHUDListener initialListener;
     private BitmapText nickNameHud;
-    boolean playing = false;
 
     public static void main(String[] args) {
 
@@ -95,29 +97,23 @@ public class ClientMain extends SimpleApplication {
         //flyCam.setEnabled(false);
         setUpNetworking();
         this.pauseOnFocus = false;
-        
+
         /* We initialize the first dialogue to choose nickname */
         goodNickname = false;
-        initialListener = new MyListenerClass();
+        initialListener = new NicknameHUDListener();
         inputManager.addRawInputListener(initialListener);
-        nickNameHud = new BitmapText(guiFont, false);          
-        nickNameHud.setSize(guiFont.getCharSet().getRenderedSize()+10);      // font size
+        nickNameHud = new BitmapText(guiFont, false);
+        nickNameHud.setSize(guiFont.getCharSet().getRenderedSize() + 10);      // font size
         nickNameHud.setColor(ColorRGBA.White);                             // font color
         nickNameHud.setText("Insert nickname: ");
-        nickNameHud.setLocalTranslation(    // position
-         settings.getWidth()/2 - (guiFont.getLineWidth(nickNameHud.getText() + "    ")),
-         settings.getHeight()/2 + (guiFont.getCharSet().getRenderedSize()+10)/2, 0); 
+        nickNameHud.setLocalTranslation( // position
+                settings.getWidth() / 2 - (guiFont.getLineWidth(nickNameHud.getText() + "    ")),
+                settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize() + 10) / 2, 0);
         guiNode.attachChild(nickNameHud);
         nickname = "";
         counter = 0;
-    }
-    
-    private void startGame(Vector3f position, Team team){
-        //Remove nickname part
-        inputManager.removeRawInputListener(initialListener);
-        nickNameHud.removeFromParent();
-        
-        
+
+        //Set up the environment
         bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
@@ -125,7 +121,20 @@ public class ClientMain extends SimpleApplication {
         setUpLight();
         setUpWorld();
         setUpKeys();
-        setUpCharacter(position,team);
+    }
+
+    private Player getPlayer() {
+        return this.players.get(id);
+    }
+
+    /*
+     * Starts the game after nickname and connection have been accepted.
+     */
+    private void startGame() {
+        //Remove nickname part
+        inputManager.removeRawInputListener(initialListener);
+        nickNameHud.removeFromParent();
+
         initCrossHairs();
         new Maze(this).setUpWorld(rootNode);
         playing = true;
@@ -152,13 +161,17 @@ public class ClientMain extends SimpleApplication {
         rootNode.attachChild(markNode);
     }
 
-    private void setUpCharacter(Vector3f position,Team team) {
-        player = new Player(team, this);
-        player.addAnimEventListener(playerAnimListener);
-        player.addToPhysicsSpace(bas);
-        player.setLocalTranslation(position);
+    /*
+     * Adds the player to the environment.
+     */
+    private void setUpCharacter(int id, Team team, Vector3f position, String nick) {
+        //create player and store in players map
+        Player p = new Player(team, position, nick, app);
+        players.put(id, p);
 
-        rootNode.attachChild(player);
+        //players.get(id).addAnimEventListener(playerAnimListener);
+        players.get(id).addToPhysicsSpace(bas);
+        rootNode.attachChild(players.get(id));
     }
     private AnimEventListener playerAnimListener = new AnimEventListener() {
         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
@@ -208,7 +221,7 @@ public class ClientMain extends SimpleApplication {
                     down = false;
                 }
             } else if (name.equals("CharJump")) {
-                player.getCharacterControl().jump();
+                getPlayer().getCharacterControl().jump();
             }
         }
     };
@@ -226,9 +239,9 @@ public class ClientMain extends SimpleApplication {
 
                 if (results.size() > 0) {
                     CollisionResult closest = results.getClosestCollision();
-                    Mark mark = new Mark(player.getTeamColor(), app);
+                    Mark mark = new Mark(getPlayer().getTeamColor(), app);
                     mark.setLocalTranslation(closest.getContactPoint());
-                    markNode.attachChild(mark); //todo mark node
+                    markNode.attachChild(mark);
                 }
             }
         }
@@ -238,7 +251,7 @@ public class ClientMain extends SimpleApplication {
         setDisplayStatView(false);
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         BitmapText ch = new BitmapText(guiFont, false);
-        ch.setColor(player.getTeamColor());
+        ch.setColor(getPlayer().getTeamColor());
         ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
         ch.setText("+"); // crosshairs
         ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
@@ -254,20 +267,18 @@ public class ClientMain extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
-        if (!goodNickname){
-            
+        if (!playing) {
             /* Nickname part */
             counter += tpf;
-            if(counter > 0.5f){
+            if (counter > 0.5f) {
                 nickNameHud.setText("Insert nickname: " + nickname + "|");
-                if(counter > 1f){
+                if (counter > 1f) {
                     counter = 0;
                 }
-            }
-            else{
+            } else {
                 nickNameHud.setText("Insert nickname: " + nickname);
             }
-        } else if(playing){
+        } else {
             Vector3f camDir = cam.getDirection().clone();
             Vector3f camLeft = cam.getLeft().clone();
             camDir.y = 0;
@@ -276,7 +287,7 @@ public class ClientMain extends SimpleApplication {
             camLeft.normalizeLocal();
             walkDirection.set(0, 0, 0);
 
-            if (!player.getCharacterControl().isOnGround()) {
+            if (!getPlayer().getCharacterControl().isOnGround()) {
                 airTime += tpf;
             } else {
                 airTime = 0;
@@ -297,24 +308,24 @@ public class ClientMain extends SimpleApplication {
 
             //change animation
             if (walkDirection.lengthSquared() == 0) { //Use lengthSquared() (No need for an extra sqrt())
-                if (!"stand".equals(player.getAnimChannel().getAnimationName())) {
-                    player.getAnimChannel().setAnim("stand", 1f);
+                if (!"stand".equals(getPlayer().getAnimChannel().getAnimationName())) {
+                    getPlayer().getAnimChannel().setAnim("stand", 1f);
                 }
             } else {
-                player.getCharacterControl().setViewDirection(walkDirection);
+                getPlayer().getCharacterControl().setViewDirection(walkDirection);
                 if (airTime > .5f) {
-                    if (!"stand".equals(player.getAnimChannel().getAnimationName())) {
-                        player.getAnimChannel().setAnim("stand");
+                    if (!"stand".equals(getPlayer().getAnimChannel().getAnimationName())) {
+                        getPlayer().getAnimChannel().setAnim("stand");
                     }
-                } else if (!"Walk".equals(player.getAnimChannel().getAnimationName())) {
-                    player.getAnimChannel().setAnim("Walk", 0.7f);
+                } else if (!"Walk".equals(getPlayer().getAnimChannel().getAnimationName())) {
+                    getPlayer().getAnimChannel().setAnim("Walk", 0.7f);
                 }
             }
 
             walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
-            player.getCharacterControl().setWalkDirection(walkDirection); // THIS IS WHERE THE WALKING HAPPENS
+            getPlayer().getCharacterControl().setWalkDirection(walkDirection); // THIS IS WHERE THE WALKING HAPPENS
             //cam.lookAtDirection(player.getCharacterControl().getViewDirection(), new Vector3f());
-            Vector3f player_pos = player.getWorldTranslation();
+            Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
         }
     }
@@ -323,7 +334,7 @@ public class ClientMain extends SimpleApplication {
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
     }
-    
+
     /*
      * Adds message to the sending queue.
      */
@@ -342,12 +353,12 @@ public class ClientMain extends SimpleApplication {
         public void run() {
             while (true) {
                 try {
-                    
+
                     //Send all messages in queue
                     while (messageQueue.size() > 0) {
                         client.send(messageQueue.poll());
                     }
-                    
+
                     Thread.sleep((long) 1 * 30);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
@@ -361,7 +372,7 @@ public class ClientMain extends SimpleApplication {
         client.close();
         super.destroy();
     }
-    
+
     private void setUpWorld() {
         mat_terrain = new Material(assetManager,
                 "Common/MatDefs/Terrain/Terrain.j3md");
@@ -414,8 +425,9 @@ public class ClientMain extends SimpleApplication {
 
         rootNode.attachChild(terrain);
     }
-    
-    public class MyListenerClass implements RawInputListener{
+
+    public class NicknameHUDListener implements RawInputListener {
+
         public void beginInput() {
         }
 
@@ -435,22 +447,20 @@ public class ClientMain extends SimpleApplication {
         }
 
         public void onKeyEvent(KeyInputEvent evt) {
-            if(evt.isPressed()){
-                if(evt.getKeyCode() == KeyInput.KEY_RETURN){
+            if (evt.isPressed()) {
+                if (evt.getKeyCode() == KeyInput.KEY_RETURN) {
                     try {
                         goodNickname = true;
                         sendMessage(new Connect(nickname));
                     } catch (Throwable ex) {
                         Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                }
-                else if(evt.getKeyCode() == KeyInput.KEY_BACK){
-                    if(nickname.length()>0){
-                        nickname = nickname.substring(0, nickname.length()-1);
+                } else if (evt.getKeyCode() == KeyInput.KEY_BACK) {
+                    if (nickname.length() > 0) {
+                        nickname = nickname.substring(0, nickname.length() - 1);
                     }
                     nickNameHud.setText("Insert nickname: " + nickname + "|");
-                }
-                else{
+                } else {
                     nickname = nickname + evt.getKeyChar();
                     nickNameHud.setText("Insert nickname: " + nickname + "|");
                 }
@@ -458,49 +468,47 @@ public class ClientMain extends SimpleApplication {
         }
 
         public void onTouchEvent(TouchEvent evt) {
-        
         }
     }
-    
-    private class NetworkMessageListener implements MessageListener<Client>{
+
+    private class NetworkMessageListener implements MessageListener<Client> {
 
         public void messageReceived(Client source, Message m) {
 
             if (m instanceof ConnectionRejected) {
-                
+
                 ConnectionRejected message = (ConnectionRejected) m;
-                
+
                 String reason = "Connection refused: " + message.getReason();
-                
-                nickNameHud.setLocalTranslation(    // position
-                settings.getWidth()/2 - (guiFont.getLineWidth(reason))/2,
-                settings.getHeight()/2 + (guiFont.getCharSet().getRenderedSize()+10)/2, 0); 
+
+                nickNameHud.setLocalTranslation( // position
+                        settings.getWidth() / 2 - (guiFont.getLineWidth(reason)) / 2,
+                        settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize() + 10) / 2, 0);
                 nickNameHud.setText(reason);
-            }
-            
-            if(m instanceof NewPlayerConnected){
-                
-                System.out.println("Recibido");
-                
-                NewPlayerConnected message = (NewPlayerConnected) m;
-                
-                final int receivedID = message.getId();
-                final String receivedNick = message.getNickname();
-                final Vector3f receivedPosition = message.getPosition();
-                final Team receivedTeam = message.getTeam();
-                
-                if(receivedNick.equals(nickname)){
-                    
-                    //My connection was approved
-                    id = receivedID;
-                    
-                    ClientMain.this.enqueue(new Callable(){
-                        public Object call() throws Exception{
-                            startGame(receivedPosition, receivedTeam);
+            } else if (m instanceof NewPlayerConnected) {
+                System.out.println("A player connected");
+                final NewPlayerConnected message = (NewPlayerConnected) m;
+
+                if (message.getNickname().equals(nickname)) { //if it is my own connection
+                    id = message.getId();
+
+                    //Start the game
+                    app.enqueue(new Callable() {
+                        public Object call() throws Exception {
+                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname());
+                            startGame();
+                            return null;
+                        }
+                    });
+                } else { //if it is someone else
+                    app.enqueue(new Callable() {
+                        public Object call() throws Exception {
+                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname());
                             return null;
                         }
                     });
                 }
+
             }
         }
     }

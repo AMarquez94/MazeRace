@@ -26,13 +26,22 @@ public class Player extends Node {
     //Player settings
     private final float JUMP_FORCE = 10f;
     private final float GRAVITY = 1f;
+    //Player attributes
     private Team team;
+    private Vector3f position;
+    private String nickname;
 
-    public Player(Team team, SimpleApplication app) {
+    public Player(Team team, Vector3f position, String nickname, SimpleApplication app) {
         this.team = team;
+        this.position = position;
+        this.nickname = nickname;
+
         // Load model
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
         this.attachChild(player); // add it to the wrapper
+
+        // Position player
+        player.setLocalTranslation(position);
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
 
@@ -84,5 +93,22 @@ public class Player extends Node {
 
     public AnimChannel getAnimChannel() {
         return animationChannel;
+    }
+
+    public void setPosition(Vector3f position) {
+        this.position = position;
+        this.setLocalTranslation(position);
+    }
+
+    public Vector3f getPosition() {
+        return this.position;
+    }
+    
+    public void setNickname(String nick) {
+        this.nickname = nick;
+    }
+
+    public String getNickname() {
+        return this.nickname;
     }
 }

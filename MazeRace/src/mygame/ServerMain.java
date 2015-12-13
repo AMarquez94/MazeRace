@@ -33,7 +33,7 @@ import mygame.Networking.*;
 
 /**
  * test
- * @author NVE Project
+ * @author normenhansen
  */
 public class ServerMain extends SimpleApplication {
     
@@ -86,8 +86,6 @@ public class ServerMain extends SimpleApplication {
         stateManager.attach(bas);
         
         setUpWorld();
-        setUpLight();
-        setUpCharacter(Team.Red);
         setUpInitialPositions();
         server.addMessageListener(new MessageHandler());
         players = 0;
@@ -166,30 +164,7 @@ public class ServerMain extends SimpleApplication {
         terrain.addControl(control);
 
         rootNode.attachChild(terrain);
-    }
-    
-     private void setUpLight() {
-        // We add light so we see the scene
-        AmbientLight al = new AmbientLight();
-        al.setColor(ColorRGBA.White.mult(5f));
-        rootNode.addLight(al);
-    }
-     
-     private void setUpCharacter(Team team) {
-        player = new Player(team, this);
-        player.addAnimEventListener(playerAnimListener);
-        player.addToPhysicsSpace(bas);
-
-        rootNode.attachChild(player);
-    }
-     
-     private AnimEventListener playerAnimListener = new AnimEventListener() {
-        public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
-        }
-
-        public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
-        }
-    };
+    } 
      
     @Override
     public void destroy() {

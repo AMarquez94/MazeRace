@@ -1,7 +1,9 @@
 package maze;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
+import com.jme3.scene.Node;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.heightmap.AbstractHeightMap;
 import com.jme3.terrain.geomipmap.TerrainQuad;
@@ -13,12 +15,20 @@ import com.jme3.texture.Texture.WrapMode;
  *
  * @author dominik
  */
-public class Maze extends SimpleApplication {
+public class Maze {
 
     private TerrainQuad terrain;
-    Material mat_terrain;
+    private Material mat_terrain;
+    private SimpleApplication simpleApplication;
+    private AssetManager assetManager;
 
-    public void setUpWorld(SimpleApplication simpleApplication) {
+    public Maze(SimpleApplication simpleApplication){
+        this.simpleApplication = simpleApplication;
+        assetManager = simpleApplication.getAssetManager();
+    }
+    
+    public void setUpWorld(Node rootNode) {
+        
         /**
          * 1. Create terrain material and load four textures into it.
          */
@@ -88,11 +98,7 @@ public class Maze extends SimpleApplication {
         /**
          * 5. The LOD (level of detail) depends on were the camera is:
          */
-        TerrainLodControl control = new TerrainLodControl(terrain, getCamera());
+        TerrainLodControl control = new TerrainLodControl(terrain, simpleApplication.getCamera());
         terrain.addControl(control);
-    }
-
-    @Override
-    public void simpleInitApp() {
     }
 }

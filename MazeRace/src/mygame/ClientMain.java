@@ -169,6 +169,7 @@ public class ClientMain extends SimpleApplication {
         Player p = new Player(team, position, nick, app);
         players.put(id, p);
 
+        //adds the player to the game
         //players.get(id).addAnimEventListener(playerAnimListener);
         players.get(id).addToPhysicsSpace(bas);
         rootNode.attachChild(players.get(id));

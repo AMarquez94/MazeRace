@@ -5,11 +5,9 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
-import com.jme3.input.ChaseCamera;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.RawInputListener;
@@ -34,11 +32,7 @@ import com.jme3.network.MessageListener;
 import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
-import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.geomipmap.TerrainQuad;
-import com.jme3.terrain.heightmap.AbstractHeightMap;
-import com.jme3.terrain.heightmap.ImageBasedHeightMap;
-import com.jme3.texture.Texture;
 import enums.Team;
 import gameobjects.Mark;
 import gameobjects.Player;
@@ -86,14 +80,14 @@ public class ClientMain extends SimpleApplication {
     private BitmapText nickNameHud;
 
     public static void main(String[] args) {
-
-        Networking.initialiseSerializables();
         app = new ClientMain();
         app.start();
     }
 
     @Override
     public void simpleInitApp() {
+        Networking.initialiseSerializables();
+
         //flyCam.setEnabled(false);
         setUpNetworking();
         this.pauseOnFocus = false;
@@ -374,6 +368,7 @@ public class ClientMain extends SimpleApplication {
     }
 
     public class NicknameHUDListener implements RawInputListener {
+
         public void beginInput() {
         }
 

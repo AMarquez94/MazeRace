@@ -20,7 +20,6 @@ import com.jme3.terrain.heightmap.AbstractHeightMap;
 import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
 import enums.Team;
-import gameobjects.Player;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,13 +43,11 @@ public class ServerMain extends SimpleApplication {
     private Vector3f[] initialPositions;
     private int redPlayers;
     private int bluePlayers;
-    //TEMPORAL
     private TerrainQuad terrain;
     private Material mat_terrain;
 
     //
     public static void main(String[] args) {
-        Networking.initialiseSerializables();
         ServerMain app = new ServerMain();
         app.start(JmeContext.Type.Headless);
     }
@@ -61,7 +58,7 @@ public class ServerMain extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-
+        Networking.initialiseSerializables();
 
         try {
             server = Network.createServer(Networking.PORT);
@@ -173,6 +170,9 @@ public class ServerMain extends SimpleApplication {
         return rep;
     }
 
+    /*
+     * Connects a player and returns its id.
+     */
     private int connectPlayer(String nickname, HostedConnection s) {
         int i = 0;
         boolean find = false;
@@ -196,7 +196,7 @@ public class ServerMain extends SimpleApplication {
         }
     }
 
-    private Team chooseTeam(int id) {
+    private Team chooseTeam() {
         if (redPlayers > bluePlayers) {
             bluePlayers++;
             return Team.Blue;
@@ -229,7 +229,7 @@ public class ServerMain extends SimpleApplication {
                             int idNew = connectPlayer(nickname, source);
                             server.broadcast(Filters.in(hostedConnections),
                                     new NewPlayerConnected(idNew, nickname,
-                                    chooseTeam(idNew), initialPositions[idNew]));
+                                    chooseTeam(), initialPositions[idNew]));
                         } else {
                             server.broadcast(Filters.equalTo(source),
                                     new ConnectionRejected("Nickname already in use"));

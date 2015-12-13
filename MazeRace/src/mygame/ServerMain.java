@@ -1,15 +1,10 @@
 package mygame;
 
-import com.jme3.animation.AnimChannel;
-import com.jme3.animation.AnimControl;
-import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.StatsAppState;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.RigidBodyControl;
-import com.jme3.light.AmbientLight;
 import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
@@ -33,13 +28,13 @@ import mygame.Networking.*;
 
 /**
  * test
+ *
  * @author normenhansen
  */
 public class ServerMain extends SimpleApplication {
-    
+
     //CONSTANTS
     private final int MAX_PLAYERS = 6;
-    
     //GLOBAL VARIABLES
     private Server server;
     private HostedConnection[] hostedConnections;
@@ -49,42 +44,37 @@ public class ServerMain extends SimpleApplication {
     private Vector3f[] initialPositions;
     private int redPlayers;
     private int bluePlayers;
-            
     //TEMPORAL
-    
     private TerrainQuad terrain;
     private Material mat_terrain;
-    private Player player;
-    
-    //
 
-    
+    //
     public static void main(String[] args) {
         Networking.initialiseSerializables();
         ServerMain app = new ServerMain();
         app.start(JmeContext.Type.Headless);
     }
-    
-    public ServerMain(){
+
+    public ServerMain() {
         super(new StatsAppState());
     }
 
     @Override
     public void simpleInitApp() {
-        
-        
+
+
         try {
             server = Network.createServer(Networking.PORT);
             server.start();
-            
+
         } catch (IOException ex) {
             Logger.getLogger(ServerMain.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-         bas = new BulletAppState();
+
+        bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
-        
+
         setUpWorld();
         setUpInitialPositions();
         server.addMessageListener(new MessageHandler());
@@ -92,19 +82,17 @@ public class ServerMain extends SimpleApplication {
         redPlayers = 0;
         bluePlayers = 0;
         nicknames = new String[MAX_PLAYERS];
-        for(int i = 0; i < nicknames.length; i++){
+        for (int i = 0; i < nicknames.length; i++) {
             nicknames[i] = "";
         }
         hostedConnections = new HostedConnection[MAX_PLAYERS];
-        
-        
+
+
         this.pauseOnFocus = false;
     }
 
     @Override
     public void simpleUpdate(float tpf) {
-        Vector3f player_pos = player.getWorldTranslation();
-        cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
         //TODO: add update code
     }
 
@@ -112,8 +100,8 @@ public class ServerMain extends SimpleApplication {
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
     }
-    
-     private void setUpWorld() {
+
+    private void setUpWorld() {
         mat_terrain = new Material(assetManager,
                 "Common/MatDefs/Terrain/Terrain.j3md");
 
@@ -164,14 +152,14 @@ public class ServerMain extends SimpleApplication {
         terrain.addControl(control);
 
         rootNode.attachChild(terrain);
-    } 
-     
+    }
+
     @Override
     public void destroy() {
         server.close();
         super.destroy();
     }
-    
+
     private boolean repeatedNickname(String nickname) {
         int i = 0;
         boolean rep = false;
@@ -184,8 +172,8 @@ public class ServerMain extends SimpleApplication {
         }
         return rep;
     }
-    
-     private int connectPlayer(String nickname, HostedConnection s) {
+
+    private int connectPlayer(String nickname, HostedConnection s) {
         int i = 0;
         boolean find = false;
         while (i < nicknames.length && !find) {
@@ -200,39 +188,33 @@ public class ServerMain extends SimpleApplication {
         }
         return i;
     }
-     
-    private void setUpInitialPositions(){
+
+    private void setUpInitialPositions() {
         initialPositions = new Vector3f[MAX_PLAYERS];
-        for(int i = 0; i < MAX_PLAYERS; i++){
-            initialPositions[i] = new Vector3f(0,0,0);
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            initialPositions[i] = new Vector3f(0, 0, 0);
         }
     }
-    
-    private Team chooseTeam(int id){
-        if(redPlayers > bluePlayers){
+
+    private Team chooseTeam(int id) {
+        if (redPlayers > bluePlayers) {
             bluePlayers++;
             return Team.Blue;
-        }
-        
-        else if(bluePlayers > redPlayers){
+        } else if (bluePlayers > redPlayers) {
             redPlayers++;
             return Team.Red;
-        }
-        //TODO RANDOM
-        else{
-            if(Math.random()>=0.5){
+        } //TODO RANDOM
+        else {
+            if (Math.random() >= 0.5) {
                 bluePlayers++;
                 return Team.Blue;
-            }
-            else{
+            } else {
                 redPlayers++;
                 return Team.Red;
             }
         }
     }
-     
-    
-    
+
     //TEMPORAL
     private class MessageHandler implements MessageListener<HostedConnection> {
 
@@ -246,10 +228,10 @@ public class ServerMain extends SimpleApplication {
                         if (!repeatedNickname(nickname)) {
                             int idNew = connectPlayer(nickname, source);
                             server.broadcast(Filters.in(hostedConnections),
-                                    new NewPlayerConnected(idNew, nickname, 
+                                    new NewPlayerConnected(idNew, nickname,
                                     chooseTeam(idNew), initialPositions[idNew]));
                         } else {
-                            server.broadcast(Filters.equalTo(source), 
+                            server.broadcast(Filters.equalTo(source),
                                     new ConnectionRejected("Nickname already in use"));
                         }
                     } else {
@@ -263,7 +245,4 @@ public class ServerMain extends SimpleApplication {
             }
         }
     }
-    
-    
-
 }

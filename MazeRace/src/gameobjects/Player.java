@@ -24,8 +24,9 @@ public class Player extends Node {
     private AnimControl animationControl;
     private AnimChannel animationChannel;
     //Player settings
-    private final float JUMP_FORCE = 10f;
-    private final float GRAVITY = 1f;
+    public final static float JUMP_FORCE = 10f;
+    public final static float GRAVITY = 1f;
+    public final static float MOVE_SPEED = 800f;
     //Player attributes
     private Team team;
     private Vector3f position;
@@ -103,7 +104,7 @@ public class Player extends Node {
     public Vector3f getPosition() {
         return this.position;
     }
-    
+
     public void setNickname(String nick) {
         this.nickname = nick;
     }

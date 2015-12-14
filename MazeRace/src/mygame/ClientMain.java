@@ -34,6 +34,7 @@ import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
 import com.jme3.terrain.geomipmap.TerrainQuad;
+import enums.ClientGameState;
 import enums.Team;
 import gameobjects.Mark;
 import gameobjects.Player;
@@ -72,7 +73,7 @@ public class ClientMain extends SimpleApplication {
     private Vector3f walkDirection = new Vector3f(0, 0, 0);
     private float airTime = 0;
     //Game state
-    boolean playing = false;
+    private static ClientGameState state;
     //Nickname Variables (used in nicknameHUD)
     private String nickname;
     private boolean goodNickname;
@@ -87,6 +88,7 @@ public class ClientMain extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+        state = ClientGameState.NicknameScreen;
         Networking.initialiseSerializables();
 
         //flyCam.setEnabled(false);
@@ -115,6 +117,7 @@ public class ClientMain extends SimpleApplication {
         setUpGraph();
         setUpLight();
         setUpKeys();
+        terrain = new Maze(this).setUpWorld(rootNode, bas);
     }
 
     private Player getPlayer() {
@@ -122,16 +125,17 @@ public class ClientMain extends SimpleApplication {
     }
 
     /*
-     * Starts the game after nickname and connection have been accepted.
+     * Starts the game.
      */
     private void startGame() {
-        //Remove nickname part
-        inputManager.removeRawInputListener(initialListener);
-        nickNameHud.removeFromParent();
+        state = ClientGameState.GameRunning;
+    }
 
-        initCrossHairs();
-        terrain = new Maze(this).setUpWorld(rootNode, bas);
-        playing = true;
+    /*
+     * Ends the game.
+     */
+    private void endGame() {
+        state = ClientGameState.GameStopped;
     }
 
     private void setUpNetworking() {
@@ -264,7 +268,7 @@ public class ClientMain extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
-        if (!playing) {
+        if (state == ClientGameState.NicknameScreen) {
             /* Nickname part */
             counter += tpf;
             if (counter > 0.5f) {
@@ -275,7 +279,7 @@ public class ClientMain extends SimpleApplication {
             } else {
                 nickNameHud.setText("Insert nickname: " + nickname);
             }
-        } else {
+        } else if (state == ClientGameState.GameRunning) {
             Vector3f camDir = cam.getDirection().clone();
             Vector3f camLeft = cam.getLeft().clone();
             camDir.y = 0;
@@ -436,21 +440,24 @@ public class ClientMain extends SimpleApplication {
                 System.out.println("A player connected");
                 final NewPlayerConnected message = (NewPlayerConnected) m;
 
-                if (message.getNickname().equals(nickname)) { //if it is my own connection
+                //Set up the character
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname());
+                        return null;
+                    }
+                });
+
+                //if it is my own connection
+                if (message.getNickname().equals(nickname)) {
                     id = message.getId();
 
-                    //Start the game
                     app.enqueue(new Callable() {
                         public Object call() throws Exception {
-                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname());
-                            startGame();
-                            return null;
-                        }
-                    });
-                } else { //if it is someone else
-                    app.enqueue(new Callable() {
-                        public Object call() throws Exception {
-                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname());
+                            //Remove nickname part
+                            inputManager.removeRawInputListener(initialListener);
+                            nickNameHud.removeFromParent();
+                            initCrossHairs();
                             return null;
                         }
                     });
@@ -487,11 +494,13 @@ public class ClientMain extends SimpleApplication {
                 });
             } else if (m instanceof TreasurePicked) {
             } else if (m instanceof Start) {
+                startGame();
             } else if (m instanceof End) {
+                final End message = (End) m;
             } else if (m instanceof Pause) {
             } else if (m instanceof Resume) {
-            } else if(m instanceof Prepare) {
-                
+            } else if (m instanceof Prepare) {
+                final Prepare message = (Prepare) m;
             }
         }
     }

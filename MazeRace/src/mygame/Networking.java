@@ -31,6 +31,7 @@ public class Networking {
         Serializer.registerClass(PickTreasureInput.class);
         Serializer.registerClass(PlayerRespawn.class);
         Serializer.registerClass(PlayerShooted.class);
+        Serializer.registerClass(Prepare.class);
         Serializer.registerClass(TreasurePicked.class);
         Serializer.registerClass(PlayerMoved.class);
         Serializer.registerClass(MovingPlayers.class);

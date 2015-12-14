@@ -31,6 +31,7 @@ public class ServerPlayer extends Node {
         this.team = team;
         this.position = position;
         this.nickname = nickname;
+        this.orientation = orientation;
 
         // Load model
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)

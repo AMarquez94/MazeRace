@@ -473,4 +473,45 @@ public class Networking {
         public Resume() {
         }
     }
+    
+    /**
+     * Server -> Clients
+     * Sends to all players the positions, orientations, nicknames and teams of 
+     * the connected players.
+     */
+    @Serializable
+    public static class Prepare extends AbstractMessage {
+
+        private Vector3f[] positions;
+        private float[][] orientations;
+        private String[] nicknames; 
+        private Team[] teams;
+
+        public Prepare() {
+        }
+
+        public Prepare(Vector3f[] positions, float[][] orientations, String[] nicknames, Team[] teams) {
+            this.positions = positions;
+            this.orientations = orientations;
+            this.nicknames = nicknames;
+            this.teams = teams;
+        }
+
+        public Vector3f[] getPositions() {
+            return positions;
+        }
+
+        public float[][] getOrientations() {
+            return orientations;
+        }
+
+        public String[] getNicknames() {
+            return nicknames;
+        }
+
+        public Team[] getTeams() {
+            return teams;
+        }
+        
+    }
 }

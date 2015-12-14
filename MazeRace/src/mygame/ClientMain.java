@@ -132,10 +132,19 @@ public class ClientMain extends SimpleApplication {
     }
 
     /*
-     * Ends the game.
+     * Ends the game and announces the winners
      */
-    private void endGame() {
+    private void endGame(Team winner) {
         state = ClientGameState.GameStopped;
+        //TODO announce winning team
+    }
+    
+    /*
+     * Removes player with given id.
+     */
+    private void removePlayer(int id) {
+        players.remove(id);
+        //TODO remove avatar from the scene graph
     }
 
     private void setUpNetworking() {
@@ -163,6 +172,10 @@ public class ClientMain extends SimpleApplication {
      * Adds the player to the environment.
      */
     private void setUpCharacter(int id, Team team, Vector3f position, String nick) {
+        if(players.containsKey(id)) { //if player already exists
+            return;
+        }
+        
         //create player and store in players map
         Player p = new Player(team, position, nick, app);
         players.put(id, p);
@@ -195,32 +208,34 @@ public class ClientMain extends SimpleApplication {
      */
     private ActionListener playerMoveListener = new ActionListener() {
         public void onAction(String name, boolean isPressed, float tpf) {
-            if (name.equals("CharLeft")) {
-                if (isPressed) {
-                    left = true;
-                } else {
-                    left = false;
+            if (state == ClientGameState.GameRunning) {
+                if (name.equals("CharLeft")) {
+                    if (isPressed) {
+                        left = true;
+                    } else {
+                        left = false;
+                    }
+                } else if (name.equals("CharRight")) {
+                    if (isPressed) {
+                        right = true;
+                    } else {
+                        right = false;
+                    }
+                } else if (name.equals("CharForward")) {
+                    if (isPressed) {
+                        up = true;
+                    } else {
+                        up = false;
+                    }
+                } else if (name.equals("CharBackward")) {
+                    if (isPressed) {
+                        down = true;
+                    } else {
+                        down = false;
+                    }
+                } else if (name.equals("CharJump")) {
+                    getPlayer().getCharacterControl().jump();
                 }
-            } else if (name.equals("CharRight")) {
-                if (isPressed) {
-                    right = true;
-                } else {
-                    right = false;
-                }
-            } else if (name.equals("CharForward")) {
-                if (isPressed) {
-                    up = true;
-                } else {
-                    up = false;
-                }
-            } else if (name.equals("CharBackward")) {
-                if (isPressed) {
-                    down = true;
-                } else {
-                    down = false;
-                }
-            } else if (name.equals("CharJump")) {
-                getPlayer().getCharacterControl().jump();
             }
         }
     };
@@ -229,21 +244,23 @@ public class ClientMain extends SimpleApplication {
      */
     private ActionListener playerShootListener = new ActionListener() {
         public void onAction(String name, boolean keyPressed, float tpf) {
-            if (name.equals("Mark") && !keyPressed) {
-                //Delete this section when implemented in server -----
-                CollisionResults results = new CollisionResults();
-                Ray ray = new Ray(cam.getLocation(), cam.getDirection());
-                terrain.collideWith(ray, results);
+            if (state == ClientGameState.GameRunning) {
+                if (name.equals("Mark") && !keyPressed) {
+                    //Delete this section when implemented in server -----
+                    CollisionResults results = new CollisionResults();
+                    Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                    terrain.collideWith(ray, results);
 
 
-                if (results.size() > 0) {
-                    CollisionResult closest = results.getClosestCollision();
-                    Mark mark = new Mark(getPlayer().getTeamColor(), app);
-                    mark.setLocalTranslation(closest.getContactPoint());
-                    markNode.attachChild(mark);
-                }//-----
+                    if (results.size() > 0) {
+                        CollisionResult closest = results.getClosestCollision();
+                        Mark mark = new Mark(getPlayer().getTeamColor(), app);
+                        mark.setLocalTranslation(closest.getContactPoint());
+                        markNode.attachChild(mark);
+                    }//-----
 
-                sendMessage(new MarkInput());
+                    sendMessage(new MarkInput());
+                }
             }
         }
     };
@@ -458,11 +475,16 @@ public class ClientMain extends SimpleApplication {
                             inputManager.removeRawInputListener(initialListener);
                             nickNameHud.removeFromParent();
                             initCrossHairs();
+                            startGame(); //Temporary. Should be done by Start message!!!
                             return null;
                         }
                     });
                 }
             } else if (m instanceof DisconnectedPlayer) {
+                DisconnectedPlayer message = (DisconnectedPlayer) m;
+                final int id = message.getPlayerID();
+                removePlayer(id);
+                System.out.println("Player " + id + " left the game.");
             } else if (m instanceof MovingPlayers) {
                 final MovingPlayers message = (MovingPlayers) m;
                 app.enqueue(new Callable() {
@@ -497,10 +519,33 @@ public class ClientMain extends SimpleApplication {
                 startGame();
             } else if (m instanceof End) {
                 final End message = (End) m;
+                endGame(message.winnerTeam);
             } else if (m instanceof Pause) {
+                //not implemented yet
             } else if (m instanceof Resume) {
+                //not implemented yet
             } else if (m instanceof Prepare) {
                 final Prepare message = (Prepare) m;
+                final String[] nicknames = message.getNicknames();
+                final Team[] teams = message.getTeams();
+                final Vector3f[] positions = message.getPositions();
+                final float[][] orientations = message.getOrientations();
+
+                for (int i = 0; i < message.getNicknames().length; i++) {
+                    if (nicknames[i].equals("")) {
+                        //then the player does not exist.
+                        continue;
+                    } else if(!players.containsKey(i)) { //if player does not already exist
+                        final int id = i;
+                        app.enqueue(new Callable() {
+                            public Object call() throws Exception {
+                                //Set up the character. TODO does not include orientation (maybe not needed)
+                                setUpCharacter(id, teams[id], positions[id], nicknames[id]);
+                                return null;
+                            }
+                        });
+                    }
+                }
             }
         }
     }

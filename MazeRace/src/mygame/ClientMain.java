@@ -45,6 +45,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
 import mygame.Networking.*;
+import static gameobjects.Player.*;
 
 /**
  * MazeRace (client).
@@ -70,7 +71,6 @@ public class ClientMain extends SimpleApplication {
     private boolean left = false, right = false, up = false, down = false;
     private Vector3f walkDirection = new Vector3f(0, 0, 0);
     private float airTime = 0;
-    private final float MOVE_SPEED = 800f;
     //Game state
     boolean playing = false;
     //Nickname Variables (used in nicknameHUD)
@@ -455,6 +455,7 @@ public class ClientMain extends SimpleApplication {
                         }
                     });
                 }
+            } else if (m instanceof DisconnectedPlayer) {
             } else if (m instanceof MovingPlayers) {
                 final MovingPlayers message = (MovingPlayers) m;
                 app.enqueue(new Callable() {
@@ -466,6 +467,14 @@ public class ClientMain extends SimpleApplication {
                         return null;
                     }
                 });
+            } else if (m instanceof Firing) {
+                final Firing message = (Firing) m;
+            } else if (m instanceof PlayerShooted) {
+                final PlayerShooted message = (PlayerShooted) m;
+            } else if (m instanceof DeadPlayer) {
+                final DeadPlayer message = (DeadPlayer) m;
+            } else if (m instanceof PlayerRespawn) {
+                final PlayerRespawn message = (PlayerRespawn) m;
             } else if (m instanceof PutMark) {
                 final PutMark message = (PutMark) m;
                 app.enqueue(new Callable() {
@@ -476,6 +485,13 @@ public class ClientMain extends SimpleApplication {
                         return null;
                     }
                 });
+            } else if (m instanceof TreasurePicked) {
+            } else if (m instanceof Start) {
+            } else if (m instanceof End) {
+            } else if (m instanceof Pause) {
+            } else if (m instanceof Resume) {
+            } else if(m instanceof Prepare) {
+                
             }
         }
     }

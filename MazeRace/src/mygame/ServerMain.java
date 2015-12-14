@@ -45,8 +45,6 @@ public class ServerMain extends SimpleApplication {
     private int bluePlayers;
     private TerrainQuad terrain;
     private float[] timeouts;
-    
-    
     private Vector3f[] initialPositions;
 
     //
@@ -61,7 +59,7 @@ public class ServerMain extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
-        Networking.initialiseSerializables(); 
+        Networking.initialiseSerializables();
 
         try {
             server = Network.createServer(Networking.PORT);
@@ -81,14 +79,14 @@ public class ServerMain extends SimpleApplication {
         connectedPlayers = 0;
         redPlayers = 0;
         bluePlayers = 0;
-        
+
         players = new ServerPlayer[MAX_PLAYERS];
 //        nicknames = new String[MAX_PLAYERS];
 //        for (int i = 0; i < nicknames.length; i++) {
 //            nicknames[i] = "";
 //        }
         hostedConnections = new HostedConnection[MAX_PLAYERS];
-        
+
         timeouts = new float[MAX_PLAYERS];
         for (int i = 0; i < MAX_PLAYERS; i++) {
             timeouts[i] = TIMEOUT;
@@ -135,8 +133,8 @@ public class ServerMain extends SimpleApplication {
         boolean find = false;
         while (i < players.length && !find) {
             if (players[i] == null) {
-                players[i] = new ServerPlayer(chooseTeam(i),initialPositions[0],
-                        nickname,new Quaternion(0,0,0,0),app);
+                players[i] = new ServerPlayer(chooseTeam(i), initialPositions[0],
+                        nickname, new Quaternion(0, 0, 0, 0), app);
                 hostedConnections[i] = s;
                 connectedPlayers++;
                 find = true;
@@ -149,9 +147,22 @@ public class ServerMain extends SimpleApplication {
 
     private void setUpInitialPositions() {
         initialPositions = new Vector3f[MAX_PLAYERS];
-        for (int i = 0; i < MAX_PLAYERS; i++) {
-            initialPositions[i] = new Vector3f(0, 0, 0);
+        try {
+            //team 1 (color?)
+            initialPositions[0] = new Vector3f(0.74115396f, -100.0f, -245.33556f);
+            initialPositions[1] = new Vector3f(4.69698f, -100.0f, -245.20134f);
+            initialPositions[2] = new Vector3f(8.940145f, -100.0f, -245.1395f);
+
+            // team 2 (color?)
+            initialPositions[3] = new Vector3f(-1.7150712f, -100.0f, 241.41965f);
+            initialPositions[4] = new Vector3f(-6.002777f, -100.0f, 241.66374f);
+            initialPositions[5] = new Vector3f(-12.222459f, -100.0f, 242.18967f);
+        } catch (Exception e) {
+            System.out.println(e);
         }
+//        for (int i = 0; i < MAX_PLAYERS; i++) {
+//            initialPositions[i] = new Vector3f(0, 0, 0);
+//        }
     }
 
     private Team chooseTeam(int id) {
@@ -172,9 +183,9 @@ public class ServerMain extends SimpleApplication {
             }
         }
     }
-    
-    private Quaternion arrayToQuaternion(float[] r){
-        return new Quaternion(r[0],r[1],r[2],r[3]);
+
+    private Quaternion arrayToQuaternion(float[] r) {
+        return new Quaternion(r[0], r[1], r[2], r[3]);
     }
 
     //TEMPORAL
@@ -207,61 +218,58 @@ public class ServerMain extends SimpleApplication {
                     server.broadcast(Filters.equalTo(source),
                             new ConnectionRejected("Maximal number of clients already connected"));
                 }
-            }
-            
-            else if (m instanceof PlayerMoved){
-                
+            } else if (m instanceof PlayerMoved) {
+
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
-                
+
                 PlayerMoved message = (PlayerMoved) m;
-                
+
                 final String animation = message.getAnimation();
                 final Vector3f position = message.getPosition();
                 final float[] rotation = message.getRotation();
-                
+
                 app.enqueue(new Callable() {
-                        public Object call() throws Exception {
-                            players[id].setPosition(position);
-                            players[id].setOrientation(arrayToQuaternion(rotation));
-                            server.broadcast(Filters.in(hostedConnections),
-                                    new MovingPlayers(id,position,rotation,animation));
-                            return null;
-                        }
+                    public Object call() throws Exception {
+                        players[id].setPosition(position);
+                        players[id].setOrientation(arrayToQuaternion(rotation));
+                        server.broadcast(Filters.in(hostedConnections),
+                                new MovingPlayers(id, position, rotation, animation));
+                        return null;
+                    }
                 });
             }
         }
     }
-    
-    private Prepare packPrepareMessage(){
+
+    private Prepare packPrepareMessage() {
         Vector3f[] positions = new Vector3f[MAX_PLAYERS];
         float[][] orientations = new float[MAX_PLAYERS][4];
         String[] nickname = new String[MAX_PLAYERS];
         Team[] teams = new Team[MAX_PLAYERS];
-        
+
         for (int i = 0; i < MAX_PLAYERS; i++) {
-            if(players[i] == null){
-                
+            if (players[i] == null) {
+
                 nickname[i] = ""; //This means no player connected with that id
-                positions[i] = new Vector3f(0,0,0);
+                positions[i] = new Vector3f(0, 0, 0);
                 orientations[i][0] = 0;
                 orientations[i][1] = 0;
                 orientations[i][2] = 0;
                 orientations[i][3] = 0;
                 teams[i] = Team.Blue;
-            }
-            else{
+            } else {
                 nickname[i] = players[i].getNickname();
                 positions[i] = players[i].getPosition();
                 teams[i] = players[i].getTeam();
                 orientations[i] = players[i].getRotationFloat();
             }
         }
-        
-        return new Prepare(positions, orientations,nickname,teams);
+
+        return new Prepare(positions, orientations, nickname, teams);
     }
 
-private int findId(HostedConnection source) {
+    private int findId(HostedConnection source) {
         int i = 0;
         boolean find = false;
         while (i < hostedConnections.length && !find) {

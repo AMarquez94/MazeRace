@@ -347,7 +347,9 @@ public class ClientMain extends SimpleApplication {
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
 
             //send new state to server TODO: rotation
-            sendMessage(new PlayerMoved(getPlayer().getPosition(), null, getPlayer().getAnimChannel().getAnimationName()));
+            sendMessage(new PlayerMoved(getPlayer().getPosition(), 
+                    quaternionToArray(getPlayer().getLocalRotation()), 
+                    getPlayer().getAnimChannel().getAnimationName()));
         }
     }
 
@@ -392,6 +394,15 @@ public class ClientMain extends SimpleApplication {
     public void destroy() {
         client.close();
         super.destroy();
+    }
+    
+    private float[] quaternionToArray(Quaternion q){
+        float[] f = new float[4];
+        f[0] = q.getX();
+        f[1] = q.getY();
+        f[2] = q.getZ();
+        f[3] = q.getW();
+        return f;
     }
 
     public class NicknameHUDListener implements RawInputListener {

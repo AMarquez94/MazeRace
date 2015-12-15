@@ -3,7 +3,10 @@ package mygame;
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.StatsAppState;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.collision.CollisionResult;
+import com.jme3.collision.CollisionResults;
 import com.jme3.math.Quaternion;
+import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
@@ -14,6 +17,7 @@ import com.jme3.network.Server;
 import com.jme3.renderer.RenderManager;
 import com.jme3.system.JmeContext;
 import com.jme3.terrain.geomipmap.TerrainQuad;
+import enums.ClientGameState;
 import enums.Team;
 import gameobjects.ServerPlayer;
 import java.io.IOException;
@@ -46,6 +50,7 @@ public class ServerMain extends SimpleApplication {
     private TerrainQuad terrain;
     private float[] timeouts;
     private Vector3f[] initialPositions;
+    private ClientGameState state;
 
     //
     public static void main(String[] args) {
@@ -92,7 +97,7 @@ public class ServerMain extends SimpleApplication {
             timeouts[i] = TIMEOUT;
         }
 
-
+        state = ClientGameState.GameStopped;
         this.pauseOnFocus = false;
     }
 
@@ -235,6 +240,29 @@ public class ServerMain extends SimpleApplication {
                         players[id].setOrientation(arrayToQuaternion(rotation));
                         server.broadcast(Filters.in(hostedConnections),
                                 new MovingPlayers(id, position, rotation, animation));
+                        return null;
+                    }
+                });
+            } else if (m instanceof MarkInput){
+                
+                final int id = findId(source);
+                timeouts[id] = TIMEOUT;
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        if (state == ClientGameState.GameRunning) {
+                             CollisionResults results = new CollisionResults();
+                             
+                             //Must be changed by the coordinates and direction of the character
+                             Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                             terrain.collideWith(ray, results);
+
+                            if (results.size() > 0) {
+                                CollisionResult closest = results.getClosestCollision();
+                                server.broadcast(Filters.in(hostedConnections), 
+                                        new MarkPoint(players[id].getTeam(),closest.getContactPoint()));
+                            }
+                        }
                         return null;
                     }
                 });

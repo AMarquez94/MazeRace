@@ -36,6 +36,7 @@ public class Networking {
         Serializer.registerClass(PlayerMoved.class);
         Serializer.registerClass(MovingPlayers.class);
         Serializer.registerClass(MarkInput.class);
+        Serializer.registerClass(MarkPoint.class);
         Serializer.registerClass(PutMark.class);
         Serializer.registerClass(Start.class);
         Serializer.registerClass(End.class);
@@ -425,6 +426,36 @@ public class Networking {
 
         public MarkInput() {
         }
+    }
+    
+    /**
+     * Server -> Clients
+     * Server says to the clients that a new mark with the colour of the team
+     * has been put in position "position"
+     */
+    @Serializable
+    public static class MarkPoint extends AbstractMessage {
+        
+        private Team team;
+        private Vector3f position;
+        
+        public MarkPoint(){
+            
+        }
+        
+        public MarkPoint(Team team, Vector3f position){
+            this.team = team;
+            this.position = position;
+        }
+
+        public Team getTeam() {
+            return team;
+        }
+
+        public Vector3f getPosition() {
+            return position;
+        }
+        
     }
 
     /**

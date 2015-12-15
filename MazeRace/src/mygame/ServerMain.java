@@ -17,7 +17,7 @@ import com.jme3.network.Server;
 import com.jme3.renderer.RenderManager;
 import com.jme3.system.JmeContext;
 import com.jme3.terrain.geomipmap.TerrainQuad;
-import enums.ClientGameState;
+import enums.ServerGameState;
 import enums.Team;
 import gameobjects.ServerPlayer;
 import java.io.IOException;
@@ -39,7 +39,7 @@ public class ServerMain extends SimpleApplication {
     private static ServerMain app;
     private final int MAX_PLAYERS = 6;
     //GLOBAL VARIABLES
-    private Server server;
+    private static Server server;
     private HostedConnection[] hostedConnections;
     private BulletAppState bas;
     private ServerPlayer[] players;
@@ -50,7 +50,8 @@ public class ServerMain extends SimpleApplication {
     private TerrainQuad terrain;
     private float[] timeouts;
     private static Vector3f[] initialPositions;
-    private ClientGameState state;
+    //game state
+    private static ServerGameState state;
 
     //
     public static void main(String[] args) {
@@ -97,8 +98,10 @@ public class ServerMain extends SimpleApplication {
             timeouts[i] = TIMEOUT;
         }
 
-        state = ClientGameState.GameStopped;
+        state = ServerGameState.GameStopped;
         this.pauseOnFocus = false;
+
+        new ServerControl(this);
     }
 
     @Override
@@ -110,7 +113,7 @@ public class ServerMain extends SimpleApplication {
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
     }
-    
+
     public static Vector3f getInitialPosition(int id) {
         return initialPositions[id];
     }
@@ -247,30 +250,46 @@ public class ServerMain extends SimpleApplication {
                         return null;
                     }
                 });
-            } else if (m instanceof MarkInput){
-                
+            } else if (m instanceof MarkInput) {
+
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        if (state == ClientGameState.GameRunning) {
-                             CollisionResults results = new CollisionResults();
-                             
-                             //Must be changed by the coordinates and direction of the character
-                             Ray ray = new Ray(cam.getLocation(), cam.getDirection());
-                             terrain.collideWith(ray, results);
+                        if (state == ServerGameState.GameRunning) {
+                            CollisionResults results = new CollisionResults();
+
+                            //Must be changed by the coordinates and direction of the character
+                            Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                            terrain.collideWith(ray, results);
 
                             if (results.size() > 0) {
                                 CollisionResult closest = results.getClosestCollision();
-                                server.broadcast(Filters.in(hostedConnections), 
-                                        new MarkPoint(players[id].getTeam(),closest.getContactPoint()));
+                                server.broadcast(Filters.in(hostedConnections),
+                                        new MarkPoint(players[id].getTeam(), closest.getContactPoint()));
                             }
                         }
                         return null;
                     }
                 });
             }
+        }
+    }
+
+    protected static ServerGameState getGameState() {
+        return state;
+    }
+
+    protected static void changeGameState(ServerGameState newState) {
+        if(!(state == newState)) {
+            if(newState == ServerGameState.GameRunning) {
+                server.broadcast(new Start());
+            } else if (newState == ServerGameState.GameStopped) {
+                server.broadcast(new End(Team.Blue)); //TODO should be passed the winning team
+            }
+            
+            state = newState;
         }
     }
 

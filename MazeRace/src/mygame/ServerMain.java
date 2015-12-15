@@ -208,27 +208,32 @@ public class ServerMain extends SimpleApplication {
             if (m instanceof Connect) {
                 Connect message = (Connect) m;
                 String nickname = message.getNickname();
-                if (connectedPlayers != MAX_PLAYERS) {
-                    if (nickname.length() > 0 && nickname.length() <= 8) {
-                        if (!repeatedNickname(nickname)) {
-                            //TODO ID must be saved
-                            int idNew = connectPlayer(nickname, source);
-                            server.broadcast(Filters.in(hostedConnections),
-                                    new NewPlayerConnected(idNew, players[idNew].getNickname(),
-                                    players[idNew].getTeam(), players[idNew].getPosition()));
-                            server.broadcast(Filters.in(hostedConnections),
-                                    packPrepareMessage());
+                if (state == ServerGameState.GameStopped) {
+                    if (connectedPlayers != MAX_PLAYERS) {
+                        if (nickname.length() > 0 && nickname.length() <= 8) {
+                            if (!repeatedNickname(nickname)) {
+                                //TODO ID must be saved
+                                int idNew = connectPlayer(nickname, source);
+                                server.broadcast(Filters.in(hostedConnections),
+                                        new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                                        players[idNew].getTeam(), players[idNew].getPosition()));
+                                server.broadcast(Filters.in(hostedConnections),
+                                        packPrepareMessage());
+                            } else {
+                                server.broadcast(Filters.equalTo(source),
+                                        new ConnectionRejected("Nickname already in use"));
+                            }
                         } else {
                             server.broadcast(Filters.equalTo(source),
-                                    new ConnectionRejected("Nickname already in use"));
+                                    new ConnectionRejected("Bad nickname"));
                         }
                     } else {
                         server.broadcast(Filters.equalTo(source),
-                                new ConnectionRejected("Bad nickname"));
+                                new ConnectionRejected("Maximal number of clients already connected"));
                     }
                 } else {
                     server.broadcast(Filters.equalTo(source),
-                            new ConnectionRejected("Maximal number of clients already connected"));
+                                new ConnectionRejected("Game has already started"));
                 }
             } else if (m instanceof PlayerMoved) {
 
@@ -277,9 +282,9 @@ public class ServerMain extends SimpleApplication {
                 int id = findId(source);
 
                 /* TODO Calculate what it has hit.
-                   and send messages according to what it has hit.
-                */
-                
+                 and send messages according to what it has hit.
+                 */
+
                 //send message to tell clients that shot is fired
                 server.broadcast(new Firing(id));
             }

@@ -161,8 +161,7 @@ public class ServerMain extends SimpleApplication {
         initialPositions = new Vector3f[MAX_PLAYERS];
         try {
             //team 1 (color?)
-//            initialPositions[0] = new Vector3f(0.74115396f, -100.0f, -245.33556f);
-            initialPositions[0] = new Vector3f(10f, -50f, 10f);
+            initialPositions[0] = new Vector3f(0.74115396f, -100.0f, -245.33556f);
             initialPositions[1] = new Vector3f(4.69698f, -100.0f, -245.20134f);
             initialPositions[2] = new Vector3f(8.940145f, -100.0f, -245.1395f);
 

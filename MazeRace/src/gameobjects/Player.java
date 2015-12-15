@@ -65,7 +65,7 @@ public class Player extends Node {
         // set basic physical properties
         characterControl.setJumpForce(new Vector3f(0, JUMP_FORCE, 0));
         characterControl.setGravity(new Vector3f(0, GRAVITY, 0));
-        characterControl.warp(new Vector3f(0, 10, 10)); // warp character into landscape at particular location
+        characterControl.warp(position); // warp character into landscape at particular location
 
         System.out.println("Available animations for this model are:");
         for (String c : animationControl.getAnimationNames()) {

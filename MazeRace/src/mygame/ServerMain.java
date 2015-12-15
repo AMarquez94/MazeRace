@@ -273,6 +273,15 @@ public class ServerMain extends SimpleApplication {
                         return null;
                     }
                 });
+            } else if (m instanceof FireInput) {
+                int id = findId(source);
+
+                /* TODO Calculate what it has hit.
+                   and send messages according to what it has hit.
+                */
+                
+                //send message to tell clients that shot is fired
+                server.broadcast(new Firing(id));
             }
         }
     }
@@ -282,13 +291,13 @@ public class ServerMain extends SimpleApplication {
     }
 
     protected static void changeGameState(ServerGameState newState) {
-        if(!(state == newState)) {
-            if(newState == ServerGameState.GameRunning) {
+        if (!(state == newState)) {
+            if (newState == ServerGameState.GameRunning) {
                 server.broadcast(new Start());
             } else if (newState == ServerGameState.GameStopped) {
                 server.broadcast(new End(Team.Blue)); //TODO should be passed the winning team
             }
-            
+
             state = newState;
         }
     }

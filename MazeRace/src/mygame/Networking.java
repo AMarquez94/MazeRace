@@ -143,34 +143,16 @@ public class Networking {
     public static class Firing extends AbstractMessage {
 
         private int playerID;
-        private int bulletID;
-        private Vector3f position;
-        private Vector3f direction;
 
         public Firing() {
         }
 
-        public Firing(int playerID, int bulletID, Vector3f position, Vector3f direction) {
+        public Firing(int playerID) {
             this.playerID = playerID;
-            this.bulletID = bulletID;
-            this.position = position;
-            this.direction = direction;
         }
 
         public int getPlayerID() {
             return playerID;
-        }
-
-        public int getBulletID() {
-            return bulletID;
-        }
-
-        public Vector3f getPosition() {
-            return position;
-        }
-
-        public Vector3f getDirection() {
-            return direction;
         }
     }
 

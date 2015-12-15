@@ -5,8 +5,6 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.collision.CollisionResult;
-import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -24,7 +22,6 @@ import com.jme3.light.AmbientLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Quaternion;
-import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.jme3.network.AbstractMessage;
 import com.jme3.network.Client;
@@ -130,6 +127,7 @@ public class ClientMain extends SimpleApplication {
      */
     private void startGame() {
         state = ClientGameState.GameRunning;
+        System.out.println("The game has begun");
     }
 
     /*
@@ -201,9 +199,10 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharForward", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("CharBackward", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_N), new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
-        inputManager.addListener(playerShootListener, "Mark");
+        inputManager.addListener(playerShootListener, "Shoot", "Mark");
     }
     /*
      * Handles player movement actions.
@@ -249,17 +248,17 @@ public class ClientMain extends SimpleApplication {
             if (state == ClientGameState.GameRunning) {
                 if (name.equals("Mark") && !keyPressed) {
                     /*Delete this section when implemented in server -----
-                    CollisionResults results = new CollisionResults();
-                    Ray ray = new Ray(cam.getLocation(), cam.getDirection());
-                    terrain.collideWith(ray, results);
+                     CollisionResults results = new CollisionResults();
+                     Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                     terrain.collideWith(ray, results);
 
 
-                    if (results.size() > 0) {
-                        CollisionResult closest = results.getClosestCollision();
-                        Mark mark = new Mark(getPlayer().getTeam(), app);
-                        mark.setLocalTranslation(closest.getContactPoint());
-                        markNode.attachChild(mark);
-                    }*/
+                     if (results.size() > 0) {
+                     CollisionResult closest = results.getClosestCollision();
+                     Mark mark = new Mark(getPlayer().getTeam(), app);
+                     mark.setLocalTranslation(closest.getContactPoint());
+                     markNode.attachChild(mark);
+                     }*/
 
                     sendMessage(new MarkInput());
                 } else if (name.equals("Shoot") && !keyPressed) {
@@ -289,7 +288,7 @@ public class ClientMain extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
-        if (state == ClientGameState.NicknameScreen) {
+        if (state == ClientGameState.NicknameScreen || getPlayer() == null) {
             /* Nickname part */
             counter += tpf;
             if (counter > 0.5f) {
@@ -350,7 +349,7 @@ public class ClientMain extends SimpleApplication {
 
             Vector3f player_pos = getPlayer().getWorldTranslation();
 
-//            cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
+            //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
 
             //send new state to server TODO: rotation
@@ -493,7 +492,6 @@ public class ClientMain extends SimpleApplication {
                             inputManager.removeRawInputListener(initialListener);
                             nickNameHud.removeFromParent();
                             initCrossHairs();
-                            startGame(); //#TODO Temporary. Should be done by Start message!!!
                             return null;
                         }
                     });
@@ -519,7 +517,13 @@ public class ClientMain extends SimpleApplication {
                 }
             } else if (m instanceof Firing) {
                 final Firing message = (Firing) m;
-                players.get(message.getPlayerID()).playGunAudio();
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        players.get(message.getPlayerID()).playGunAudio();
+                        return null;
+                    }
+                });
             } else if (m instanceof PlayerShooted) {
                 final PlayerShooted message = (PlayerShooted) m;
                 //TODO decrease health points?

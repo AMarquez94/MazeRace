@@ -44,7 +44,7 @@ public class Player extends Node {
         this.attachChild(player); // add it to the wrapper
 
         // Position player
-        player.setLocalTranslation(position);
+        this.setLocalTranslation(position);
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
 
@@ -125,4 +125,6 @@ public class Player extends Node {
     public void playGunAudio() {
         this.audio_gun.playInstance();
     }
+    
+    
 }

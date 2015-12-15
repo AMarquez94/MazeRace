@@ -356,6 +356,9 @@ public class ClientMain extends SimpleApplication {
             sendMessage(new PlayerMoved(getPlayer().getPosition(),
                     quaternionToArray(getPlayer().getLocalRotation()),
                     getPlayer().getAnimChannel().getAnimationName()));
+        }else if(state == ClientGameState.GameStopped){
+            Vector3f player_pos = getPlayer().getWorldTranslation();
+            cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
         }
     }
 

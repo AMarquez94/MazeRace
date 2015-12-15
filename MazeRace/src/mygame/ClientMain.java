@@ -348,7 +348,7 @@ public class ClientMain extends SimpleApplication {
 
             Vector3f player_pos = getPlayer().getWorldTranslation();
 
-            cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
+//            cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
 
             //send new state to server TODO: rotation
@@ -491,7 +491,7 @@ public class ClientMain extends SimpleApplication {
                             inputManager.removeRawInputListener(initialListener);
                             nickNameHud.removeFromParent();
                             initCrossHairs();
-                            startGame(); //Temporary. Should be done by Start message!!!
+                            startGame(); //#TODO Temporary. Should be done by Start message!!!
                             return null;
                         }
                     });

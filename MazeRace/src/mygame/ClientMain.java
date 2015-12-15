@@ -248,7 +248,7 @@ public class ClientMain extends SimpleApplication {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (state == ClientGameState.GameRunning) {
                 if (name.equals("Mark") && !keyPressed) {
-                    //Delete this section when implemented in server -----
+                    /*Delete this section when implemented in server -----
                     CollisionResults results = new CollisionResults();
                     Ray ray = new Ray(cam.getLocation(), cam.getDirection());
                     terrain.collideWith(ray, results);
@@ -256,12 +256,14 @@ public class ClientMain extends SimpleApplication {
 
                     if (results.size() > 0) {
                         CollisionResult closest = results.getClosestCollision();
-                        Mark mark = new Mark(getPlayer().getTeamColor(), app);
+                        Mark mark = new Mark(getPlayer().getTeam(), app);
                         mark.setLocalTranslation(closest.getContactPoint());
                         markNode.attachChild(mark);
-                    }//-----
+                    }*/
 
                     sendMessage(new MarkInput());
+                } else if (name.equals("Shoot") && !keyPressed) {
+                    sendMessage(new FireInput());
                 }
             }
         }
@@ -547,9 +549,10 @@ public class ClientMain extends SimpleApplication {
                 });
             } else if (m instanceof PutMark) {
                 final PutMark message = (PutMark) m;
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        Mark mark = new Mark(getPlayer().getTeamColor(), app);
+                        Mark mark = new Mark(message.getTeam(), app);
                         mark.setLocalTranslation(message.getPosition());
                         markNode.attachChild(mark);
                         return null;

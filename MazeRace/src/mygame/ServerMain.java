@@ -267,7 +267,7 @@ public class ServerMain extends SimpleApplication {
                             if (results.size() > 0) {
                                 CollisionResult closest = results.getClosestCollision();
                                 server.broadcast(Filters.in(hostedConnections),
-                                        new MarkPoint(players[id].getTeam(), closest.getContactPoint()));
+                                        new PutMark(players[id].getTeam(), closest.getContactPoint()));
                             }
                         }
                         return null;

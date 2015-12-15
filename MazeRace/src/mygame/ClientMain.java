@@ -343,9 +343,12 @@ public class ClientMain extends SimpleApplication {
             }
 
             walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
+
             getPlayer().getCharacterControl().setWalkDirection(walkDirection); // THIS IS WHERE THE WALKING HAPPENS
-            //cam.lookAtDirection(player.getCharacterControl().getViewDirection(), new Vector3f());
+
             Vector3f player_pos = getPlayer().getWorldTranslation();
+
+            cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
 
             //send new state to server TODO: rotation
@@ -500,15 +503,18 @@ public class ClientMain extends SimpleApplication {
                 System.out.println("Player " + id + " left the game.");
             } else if (m instanceof MovingPlayers) {
                 final MovingPlayers message = (MovingPlayers) m;
-                app.enqueue(new Callable() {
-                    public Object call() throws Exception {
-                        //TODO set rotation
-                        Player p = players.get(message.getPlayerID());
-                        p.setPosition(message.getPosition());
-                        p.getAnimChannel().setAnim(message.getAnimation());
-                        return null;
-                    }
-                });
+
+                if (id != message.getPlayerID()) {
+                    app.enqueue(new Callable() {
+                        public Object call() throws Exception {
+                            //TODO set rotation
+                            Player p = players.get(message.getPlayerID());
+                            p.setPosition(message.getPosition());
+                            p.getAnimChannel().setAnim(message.getAnimation());
+                            return null;
+                        }
+                    });
+                }
             } else if (m instanceof Firing) {
                 final Firing message = (Firing) m;
                 players.get(message.getPlayerID()).playGunAudio();
@@ -517,7 +523,7 @@ public class ClientMain extends SimpleApplication {
                 //TODO decrease health points?
             } else if (m instanceof DeadPlayer) {
                 final DeadPlayer message = (DeadPlayer) m;
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         //Remove dead player from the scene graph
@@ -525,7 +531,7 @@ public class ClientMain extends SimpleApplication {
                         return null;
                     }
                 });
-                
+
             } else if (m instanceof PlayerRespawn) {
                 final PlayerRespawn message = (PlayerRespawn) m;
                 final int id = message.getPlayerRespawn();

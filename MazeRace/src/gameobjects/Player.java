@@ -4,6 +4,7 @@ import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
+import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.math.ColorRGBA;
@@ -20,6 +21,7 @@ public class Player extends Node {
     //Objects
 
     private Node player;
+    private AudioNode audio_gun;
     private BetterCharacterControl characterControl;
     private AnimControl animationControl;
     private AnimChannel animationChannel;
@@ -45,6 +47,13 @@ public class Player extends Node {
         player.setLocalTranslation(position);
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
+
+        // Audio gun
+        audio_gun = new AudioNode(app.getAssetManager(), "Sound/Effects/Gun.wav", false);
+        audio_gun.setPositional(false);
+        audio_gun.setLooping(false);
+        audio_gun.setVolume(2);
+        this.attachChild(audio_gun);
 
         //AnimControl control setup animation
         animationControl = player.getControl(AnimControl.class);
@@ -111,5 +120,9 @@ public class Player extends Node {
 
     public String getNickname() {
         return this.nickname;
+    }
+    
+    public void playGunAudio() {
+        this.audio_gun.playInstance();
     }
 }

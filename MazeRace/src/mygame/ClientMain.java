@@ -61,6 +61,7 @@ public class ClientMain extends SimpleApplication {
     private BulletAppState bas;
     //scene graph
     private Node markNode = new Node("Marks");
+    private Node playerNode = new Node("Players");
     //terrain
     private TerrainQuad terrain;
     private Material mat_terrain;
@@ -138,7 +139,7 @@ public class ClientMain extends SimpleApplication {
         state = ClientGameState.GameStopped;
         //TODO announce winning team
     }
-    
+
     /*
      * Removes player with given id.
      */
@@ -166,16 +167,17 @@ public class ClientMain extends SimpleApplication {
 
     private void setUpGraph() {
         rootNode.attachChild(markNode);
+        rootNode.attachChild(playerNode);
     }
 
     /*
      * Adds the player to the environment.
      */
     private void setUpCharacter(int id, Team team, Vector3f position, String nick) {
-        if(players.containsKey(id)) { //if player already exists
+        if (players.containsKey(id)) { //if player already exists
             return;
         }
-        
+
         //create player and store in players map
         Player p = new Player(team, position, nick, app);
         players.put(id, p);
@@ -183,7 +185,7 @@ public class ClientMain extends SimpleApplication {
         //adds the player to the game
         //players.get(id).addAnimEventListener(playerAnimListener);
         players.get(id).addToPhysicsSpace(bas);
-        rootNode.attachChild(players.get(id));
+        playerNode.attachChild(players.get(id));
     }
     private AnimEventListener playerAnimListener = new AnimEventListener() {
         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
@@ -347,8 +349,8 @@ public class ClientMain extends SimpleApplication {
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
 
             //send new state to server TODO: rotation
-            sendMessage(new PlayerMoved(getPlayer().getPosition(), 
-                    quaternionToArray(getPlayer().getLocalRotation()), 
+            sendMessage(new PlayerMoved(getPlayer().getPosition(),
+                    quaternionToArray(getPlayer().getLocalRotation()),
                     getPlayer().getAnimChannel().getAnimationName()));
         }
     }
@@ -395,8 +397,8 @@ public class ClientMain extends SimpleApplication {
         client.close();
         super.destroy();
     }
-    
-    private float[] quaternionToArray(Quaternion q){
+
+    private float[] quaternionToArray(Quaternion q) {
         float[] f = new float[4];
         f[0] = q.getX();
         f[1] = q.getY();
@@ -509,12 +511,34 @@ public class ClientMain extends SimpleApplication {
                 });
             } else if (m instanceof Firing) {
                 final Firing message = (Firing) m;
+                players.get(message.getPlayerID()).playGunAudio();
             } else if (m instanceof PlayerShooted) {
                 final PlayerShooted message = (PlayerShooted) m;
+                //TODO decrease health points?
             } else if (m instanceof DeadPlayer) {
                 final DeadPlayer message = (DeadPlayer) m;
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        //Remove dead player from the scene graph
+                        playerNode.detachChild(players.get(message.getDeadPlayer()));
+                        return null;
+                    }
+                });
+                
             } else if (m instanceof PlayerRespawn) {
                 final PlayerRespawn message = (PlayerRespawn) m;
+                final int id = message.getPlayerRespawn();
+                final Vector3f position = message.getPosition();
+
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        //move player back to its initial position (spawn point)
+                        players.get(id).setLocalTranslation(position);
+                        playerNode.attachChild(players.get(id));
+                        return null;
+                    }
+                });
             } else if (m instanceof PutMark) {
                 final PutMark message = (PutMark) m;
                 app.enqueue(new Callable() {
@@ -546,7 +570,7 @@ public class ClientMain extends SimpleApplication {
                     if (nicknames[i].equals("")) {
                         //then the player does not exist.
                         continue;
-                    } else if(!players.containsKey(i)) { //if player does not already exist
+                    } else if (!players.containsKey(i)) { //if player does not already exist
                         final int id = i;
                         app.enqueue(new Callable() {
                             public Object call() throws Exception {

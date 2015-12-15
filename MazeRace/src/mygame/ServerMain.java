@@ -49,7 +49,7 @@ public class ServerMain extends SimpleApplication {
     private int bluePlayers;
     private TerrainQuad terrain;
     private float[] timeouts;
-    private Vector3f[] initialPositions;
+    private static Vector3f[] initialPositions;
     private ClientGameState state;
 
     //
@@ -109,6 +109,10 @@ public class ServerMain extends SimpleApplication {
     @Override
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
+    }
+    
+    public static Vector3f getInitialPosition(int id) {
+        return initialPositions[id];
     }
 
     @Override

@@ -33,6 +33,9 @@ public class Player extends Node {
     private Team team;
     private Vector3f position;
     private String nickname;
+    //Used for moving
+    public Vector3f walkDirection = new Vector3f(0, 0, 0);
+    public float airTime = 0;
 
     public Player(Team team, Vector3f position, String nickname, SimpleApplication app) {
         this.team = team;
@@ -107,7 +110,6 @@ public class Player extends Node {
 
     public void setPosition(Vector3f position) {
         this.position = position;
-        this.setLocalTranslation(position);
     }
 
     public Vector3f getPosition() {
@@ -121,10 +123,20 @@ public class Player extends Node {
     public String getNickname() {
         return this.nickname;
     }
-    
+
     public void playGunAudio() {
         this.audio_gun.playInstance();
     }
-    
-    
+
+    public void walkToPosition(Vector3f position) {
+        Vector3f old_pos = this.position.clone();
+        Vector3f dir = position.subtract(old_pos).normalize();
+        float dist = position.distance(old_pos);
+
+        this.walkDirection = dir;
+        this.walkDirection.multLocal(MOVE_SPEED).multLocal(dist);
+        this.getCharacterControl().setWalkDirection(this.walkDirection);
+
+        this.setPosition(position);
+    }
 }

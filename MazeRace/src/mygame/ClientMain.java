@@ -68,8 +68,7 @@ public class ClientMain extends SimpleApplication {
     private HashMap<Integer, Player> players = new HashMap<Integer, Player>();
     //player movement
     private boolean left = false, right = false, up = false, down = false;
-    private Vector3f walkDirection = new Vector3f(0, 0, 0);
-    private float airTime = 0;
+    
     //Game state
     private static ClientGameState state;
     //Nickname Variables (used in nicknameHUD)
@@ -306,35 +305,35 @@ public class ClientMain extends SimpleApplication {
             camLeft.y = 0;
             camDir.normalizeLocal();
             camLeft.normalizeLocal();
-            walkDirection.set(0, 0, 0);
+            getPlayer().walkDirection.set(0, 0, 0);
 
             if (!getPlayer().getCharacterControl().isOnGround()) {
-                airTime += tpf;
+                getPlayer().airTime += tpf;
             } else {
-                airTime = 0;
+                getPlayer().airTime = 0;
             }
 
             if (left) {
-                walkDirection.addLocal(camLeft);
+                getPlayer().walkDirection.addLocal(camLeft);
             }
             if (right) {
-                walkDirection.addLocal(camLeft.negate());
+                getPlayer().walkDirection.addLocal(camLeft.negate());
             }
             if (up) {
-                walkDirection.addLocal(camDir);
+                getPlayer().walkDirection.addLocal(camDir);
             }
             if (down) {
-                walkDirection.addLocal(camDir.negate());
+                getPlayer().walkDirection.addLocal(camDir.negate());
             }
 
             //change animation
-            if (walkDirection.lengthSquared() == 0) { //Use lengthSquared() (No need for an extra sqrt())
+            if (getPlayer().walkDirection.lengthSquared() == 0) { //Use lengthSquared() (No need for an extra sqrt())
                 if (!"stand".equals(getPlayer().getAnimChannel().getAnimationName())) {
                     getPlayer().getAnimChannel().setAnim("stand", 1f);
                 }
             } else {
-                getPlayer().getCharacterControl().setViewDirection(walkDirection);
-                if (airTime > .5f) {
+                getPlayer().getCharacterControl().setViewDirection(getPlayer().walkDirection);
+                if (getPlayer().airTime > .5f) {
                     if (!"stand".equals(getPlayer().getAnimChannel().getAnimationName())) {
                         getPlayer().getAnimChannel().setAnim("stand");
                     }
@@ -343,9 +342,9 @@ public class ClientMain extends SimpleApplication {
                 }
             }
 
-            walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
+            getPlayer().walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
 
-            getPlayer().getCharacterControl().setWalkDirection(walkDirection); // THIS IS WHERE THE WALKING HAPPENS
+            getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection); // THIS IS WHERE THE WALKING HAPPENS
 
             Vector3f player_pos = getPlayer().getWorldTranslation();
             getPlayer().setPosition(player_pos);
@@ -512,8 +511,13 @@ public class ClientMain extends SimpleApplication {
                         public Object call() throws Exception {
                             //TODO set rotation
                             Player p = players.get(message.getPlayerID());
-                            p.setPosition(message.getPosition());
-                            p.getAnimChannel().setAnim(message.getAnimation());
+                            p.walkToPosition(message.getPosition());
+                            
+                            //change anim only if not the same, else shocking motion
+                            if(p.getAnimChannel().getAnimationName().equals(message.getAnimation())) {
+                                p.getAnimChannel().setAnim(message.getAnimation());
+                            }
+                            
                             return null;
                         }
                     });

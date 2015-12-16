@@ -284,11 +284,6 @@ public class ClientMain extends SimpleApplication {
         al.setColor(ColorRGBA.White.mult(5f));
         rootNode.addLight(al);
     }
-    
-    private void movePlayer(int id, Vector3f pos) {
-        Player p = players.get(id);
-        Vector3f current_pos =  p.getPosition();
-    }
 
     @Override
     public void simpleUpdate(float tpf) {
@@ -516,11 +511,13 @@ public class ClientMain extends SimpleApplication {
                         public Object call() throws Exception {
                             //TODO set rotation
                             Player p = players.get(message.getPlayerID());
-                            p.setPosition(message.getPosition());
-                            movePlayer(message.getPlayerID(), message.getPosition());
+                            p.walkToPosition(message.getPosition());
+                            
+                            //change anim only if not the same, else shocking motion
                             if(p.getAnimChannel().getAnimationName().equals(message.getAnimation())) {
                                 p.getAnimChannel().setAnim(message.getAnimation());
                             }
+                            
                             return null;
                         }
                     });

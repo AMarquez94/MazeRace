@@ -303,13 +303,13 @@ public class Networking {
     public static class PlayerMoved extends AbstractMessage {
 
         Vector3f position;
-        float[] rotation;
+        Vector3f rotation;
         String animation;
 
         public PlayerMoved() {
         }
 
-        public PlayerMoved(Vector3f position, float[] rotation, String animation) {
+        public PlayerMoved(Vector3f position, Vector3f rotation, String animation) {
             this.position = position;
             this.rotation = rotation;
             this.animation = animation;
@@ -319,7 +319,7 @@ public class Networking {
             return position;
         }
 
-        public float[] getRotation() {
+        public Vector3f getRotation() {
             return rotation;
         }
 
@@ -338,13 +338,13 @@ public class Networking {
 
         int playerID;
         Vector3f position;
-        float[] rotation;
+        Vector3f rotation;
         String animation;
 
         public MovingPlayers() {
         }
 
-        public MovingPlayers(int playerID, Vector3f position, float[] rotation, String animation) {
+        public MovingPlayers(int playerID, Vector3f position, Vector3f rotation, String animation) {
             this.playerID = playerID;
             this.position = position;
             this.rotation = rotation;
@@ -359,7 +359,7 @@ public class Networking {
             return position;
         }
 
-        public float[] getRotation() {
+        public Vector3f getRotation() {
             return rotation;
         }
 

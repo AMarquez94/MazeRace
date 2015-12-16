@@ -182,7 +182,7 @@ public class ClientMain extends SimpleApplication {
         //adds the player to the game
         //players.get(id).addAnimEventListener(playerAnimListener);
         players.get(id).addToPhysicsSpace(bas);
-        playerNode.attachChild(players.get(id));
+        rootNode.attachChild(players.get(id));
     }
     private AnimEventListener playerAnimListener = new AnimEventListener() {
         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
@@ -353,8 +353,9 @@ public class ClientMain extends SimpleApplication {
 
             //send new state to server TODO: rotation
             sendMessage(new PlayerMoved(getPlayer().getPosition(),
-                    quaternionToArray(getPlayer().getLocalRotation()),
+                    getPlayer().getCharacterControl().getViewDirection(),
                     getPlayer().getAnimChannel().getAnimationName()));
+            System.out.println(getPlayer().getLocalRotation());
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
@@ -511,10 +512,13 @@ public class ClientMain extends SimpleApplication {
                         public Object call() throws Exception {
                             //TODO set rotation
                             Player p = players.get(message.getPlayerID());
-                            p.walkToPosition(message.getPosition());
+                            p.getCharacterControl().warp(message.getPosition());
+                            p.setPosition(message.getPosition());
+                            Vector3f rotation = message.getRotation();
+                            p.getCharacterControl().setViewDirection(rotation);
                             
                             //change anim only if not the same, else shocking motion
-                            if(p.getAnimChannel().getAnimationName().equals(message.getAnimation())) {
+                            if(!p.getAnimChannel().getAnimationName().equals(message.getAnimation())) {
                                 p.getAnimChannel().setAnim(message.getAnimation());
                             }
                             
@@ -587,7 +591,7 @@ public class ClientMain extends SimpleApplication {
                 final float[][] orientations = message.getOrientations();
 
                 for (int i = 0; i < message.getNicknames().length; i++) {
-                    if (!players.containsKey(i)) { //if player does not already exist
+                    if (!players.containsKey(i) && !nicknames[i].equals("")) { //if player does not already exist
                         final int id = i;
                         app.enqueue(new Callable() {
                             public Object call() throws Exception {

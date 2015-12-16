@@ -155,7 +155,7 @@ public class ServerMain extends SimpleApplication {
         while (i < players.length && !find) {
             if (players[i] == null) {
                 players[i] = new ServerPlayer(chooseTeam(i), initialPositions[i],
-                        nickname, new Quaternion(0, 0, 0, 0), app);
+                        nickname, new Vector3f(0f, 0f, 0f), app);
                 hostedConnections[i] = s;
                 connectedPlayers++;
                 find = true;
@@ -172,11 +172,11 @@ public class ServerMain extends SimpleApplication {
         try {
             //team 1 (color?)
             initialPositions[0] = new Vector3f(0.74115396f, -100.0f, -245.33556f);
-            initialPositions[2] = new Vector3f(4.69698f, -100.0f, -245.20134f);
+            initialPositions[1] = new Vector3f(4.69698f, -100.0f, -245.20134f);
             initialPositions[4] = new Vector3f(8.940145f, -100.0f, -245.1395f);
 
             // team 2 (color?)
-            initialPositions[1] = new Vector3f(-1.7150712f, -100.0f, 241.41965f);
+            initialPositions[2] = new Vector3f(-1.7150712f, -100.0f, 241.41965f);
             initialPositions[3] = new Vector3f(-6.002777f, -100.0f, 241.66374f);
             initialPositions[5] = new Vector3f(-12.222459f, -100.0f, 242.18967f);
         } catch (Exception e) {
@@ -254,12 +254,12 @@ public class ServerMain extends SimpleApplication {
 
                 final String animation = message.getAnimation();
                 final Vector3f position = message.getPosition();
-                final float[] rotation = message.getRotation();
+                final Vector3f rotation = message.getRotation();
 
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         players[id].setPosition(position);
-                        players[id].setOrientation(arrayToQuaternion(rotation));
+                        players[id].setOrientation(rotation);
                         server.broadcast(Filters.in(hostedConnections),
                                 new MovingPlayers(id, position, rotation, animation));
                         return null;

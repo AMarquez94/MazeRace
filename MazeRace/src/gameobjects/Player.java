@@ -41,6 +41,8 @@ public class Player extends Node {
         this.team = team;
         this.position = position;
         this.nickname = nickname;
+        
+        this.setName(nickname);
 
         // Load model
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
@@ -109,6 +111,7 @@ public class Player extends Node {
     }
 
     public void setPosition(Vector3f position) {
+        //this.setLocalTranslation(position);
         this.position = position;
     }
 

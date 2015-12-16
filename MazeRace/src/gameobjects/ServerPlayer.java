@@ -24,10 +24,10 @@ public class ServerPlayer extends Node {
     private Team team;
     private Vector3f position;
     private String nickname;
-    private Quaternion orientation;
+    private Vector3f orientation;
 
     public ServerPlayer(Team team, Vector3f position, String nickname, 
-            Quaternion orientation, SimpleApplication app) {
+            Vector3f orientation, SimpleApplication app) {
         this.team = team;
         this.position = position;
         this.nickname = nickname;
@@ -41,7 +41,8 @@ public class ServerPlayer extends Node {
         this.setLocalTranslation(position);
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
-        player.setLocalRotation(orientation);
+        Quaternion q = new Quaternion(orientation.x, orientation.y, orientation.z, 1.0f);
+        player.setLocalRotation(q);
     }
 
     public Team getTeam() {
@@ -76,7 +77,7 @@ public class ServerPlayer extends Node {
         return this.nickname;
     }
     
-    public Quaternion getRotation(){
+    public Vector3f getRotation(){
         return this.orientation;
     }
     
@@ -85,7 +86,7 @@ public class ServerPlayer extends Node {
         r[0] = this.orientation.getX();
         r[1] = this.orientation.getY();
         r[2] = this.orientation.getZ();
-        r[3] = this.orientation.getW();
+//        r[3] = this.orientation.getW();
         return r;
     }
 
@@ -97,9 +98,10 @@ public class ServerPlayer extends Node {
         this.team = team;
     }
 
-    public void setOrientation(Quaternion orientation) {
+    public void setOrientation(Vector3f orientation) {
         this.orientation = orientation;
-        this.setLocalRotation(orientation);
+        Quaternion q = new Quaternion(orientation.x, orientation.y, orientation.z, 1.0f);
+        this.setLocalRotation(q);
     }
     
     

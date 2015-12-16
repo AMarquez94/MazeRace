@@ -50,6 +50,7 @@ public class ServerMain extends SimpleApplication {
     private TerrainQuad terrain;
     private float[] timeouts;
     private static Vector3f[] initialPositions;
+    private float periodic_threshold = 0; //temporary
     //game state
     private static ServerGameState state;
 
@@ -106,7 +107,15 @@ public class ServerMain extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
-        //TODO: add update code
+        if (state == ServerGameState.GameStopped) {
+            //Send a Prepare every second. TODO implement this better.
+            if (periodic_threshold > 1) {
+                server.broadcast(Filters.in(hostedConnections), packPrepareMessage());
+                periodic_threshold = 0;
+            } else {
+                periodic_threshold++;
+            }
+        }
     }
 
     @Override
@@ -234,7 +243,7 @@ public class ServerMain extends SimpleApplication {
                     }
                 } else {
                     server.broadcast(Filters.equalTo(source),
-                                new ConnectionRejected("Game has already started"));
+                            new ConnectionRejected("Game has already started"));
                 }
             } else if (m instanceof PlayerMoved) {
 

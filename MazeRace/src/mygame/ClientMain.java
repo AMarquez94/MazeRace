@@ -356,7 +356,7 @@ public class ClientMain extends SimpleApplication {
             sendMessage(new PlayerMoved(getPlayer().getPosition(),
                     quaternionToArray(getPlayer().getLocalRotation()),
                     getPlayer().getAnimChannel().getAnimationName()));
-        }else if(state == ClientGameState.GameStopped){
+        } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
         }
@@ -520,7 +520,7 @@ public class ClientMain extends SimpleApplication {
                 }
             } else if (m instanceof Firing) {
                 final Firing message = (Firing) m;
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         players.get(message.getPlayerID()).playGunAudio();
@@ -583,10 +583,7 @@ public class ClientMain extends SimpleApplication {
                 final float[][] orientations = message.getOrientations();
 
                 for (int i = 0; i < message.getNicknames().length; i++) {
-                    if (nicknames[i].equals("")) {
-                        //then the player does not exist.
-                        continue;
-                    } else if (!players.containsKey(i)) { //if player does not already exist
+                    if (!players.containsKey(i)) { //if player does not already exist
                         final int id = i;
                         app.enqueue(new Callable() {
                             public Object call() throws Exception {

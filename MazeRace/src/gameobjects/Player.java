@@ -33,6 +33,9 @@ public class Player extends Node {
     private Team team;
     private Vector3f position;
     private String nickname;
+    //Used for moving
+    public Vector3f walkDirection = new Vector3f(0, 0, 0);
+    public float airTime = 0;
 
     public Player(Team team, Vector3f position, String nickname, SimpleApplication app) {
         this.team = team;

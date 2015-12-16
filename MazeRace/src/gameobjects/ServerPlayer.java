@@ -19,7 +19,7 @@ public class ServerPlayer extends Node {
     //Player settings
     public final static float JUMP_FORCE = 10f;
     public final static float GRAVITY = 1f;
-    public final static float MOVE_SPEED = 800f;
+    public final static float MOVE_SPEED = 2000f;
     //Player attributes
     private Team team;
     private Vector3f position;
@@ -38,7 +38,7 @@ public class ServerPlayer extends Node {
         this.attachChild(player); // add it to the wrapper
 
         // Position player
-        player.setLocalTranslation(position);
+        this.setLocalTranslation(position);
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
         player.setLocalRotation(orientation);

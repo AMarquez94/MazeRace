@@ -28,7 +28,7 @@ public class Player extends Node {
     //Player settings
     public final static float JUMP_FORCE = 10f;
     public final static float GRAVITY = 1f;
-    public final static float MOVE_SPEED = 800f;
+    public final static float MOVE_SPEED = 2000f;
     //Player attributes
     private Team team;
     private Vector3f position;

@@ -30,6 +30,7 @@ import com.jme3.network.MessageListener;
 import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
+import com.jme3.system.AppSettings;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import enums.ClientGameState;
 import enums.Team;
@@ -44,6 +45,7 @@ import java.util.logging.Logger;
 import maze.Maze;
 import mygame.Networking.*;
 import static gameobjects.Player.*;
+import maze.Treasure;
 
 /**
  * MazeRace (client).
@@ -59,6 +61,7 @@ public class ClientMain extends SimpleApplication {
     //scene graph
     private Node markNode = new Node("Marks");
     private Node playerNode = new Node("Players");
+    private Node treasureNode = new Node("Treasure");
     //terrain
     private TerrainQuad terrain;
     private Material mat_terrain;
@@ -68,7 +71,6 @@ public class ClientMain extends SimpleApplication {
     private HashMap<Integer, Player> players = new HashMap<Integer, Player>();
     //player movement
     private boolean left = false, right = false, up = false, down = false;
-    
     //Game state
     private static ClientGameState state;
     //Nickname Variables (used in nicknameHUD)
@@ -80,6 +82,11 @@ public class ClientMain extends SimpleApplication {
 
     public static void main(String[] args) {
         app = new ClientMain();
+        
+        AppSettings settings = new AppSettings(true);
+        settings.setFrameRate(60);
+        app.setSettings(settings);
+        
         app.start();
     }
 
@@ -114,7 +121,8 @@ public class ClientMain extends SimpleApplication {
         setUpGraph();
         setUpLight();
         setUpKeys();
-        terrain = new Maze(this).setUpWorld(rootNode, bas);
+        new Maze(this).setUpWorld(rootNode, bas);
+        new Treasure(this).createTreasure(treasureNode, bas);
     }
 
     private Player getPlayer() {
@@ -165,6 +173,7 @@ public class ClientMain extends SimpleApplication {
     private void setUpGraph() {
         rootNode.attachChild(markNode);
         rootNode.attachChild(playerNode);
+        rootNode.attachChild(treasureNode);
     }
 
     /*
@@ -516,12 +525,12 @@ public class ClientMain extends SimpleApplication {
                             p.setPosition(message.getPosition());
                             Vector3f rotation = message.getRotation();
                             p.getCharacterControl().setViewDirection(rotation);
-                            
+
                             //change anim only if not the same, else shocking motion
-                            if(!p.getAnimChannel().getAnimationName().equals(message.getAnimation())) {
+                            if (!p.getAnimChannel().getAnimationName().equals(message.getAnimation())) {
                                 p.getAnimChannel().setAnim(message.getAnimation());
                             }
-                            
+
                             return null;
                         }
                     });

@@ -258,6 +258,27 @@ public class Networking {
             return direction;
         }
     }
+    
+    /**
+     * Server -> Clients Server says where the treasure is dropped
+     * Also used when initializing the treasure
+     */
+    @Serializable
+    public static class TreasureDropped extends AbstractMessage {
+        private Vector3f location;
+        
+        public TreasureDropped() {
+            
+        }
+        
+        public TreasureDropped(Vector3f location) {
+            this.location = location;
+        }
+        
+        public Vector3f getLocation() {
+            return this.location;
+        }
+    }
 
     /**
      * Server -> Clients Server says that Client with id "playerId" picked the

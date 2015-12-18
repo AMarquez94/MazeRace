@@ -298,6 +298,15 @@ public class ServerMain extends SimpleApplication {
 
                 //send message to tell clients that shot is fired
                 server.broadcast(new Firing(id));
+            } else if (m instanceof PickTreasureInput) {
+                PickTreasureInput message = (PickTreasureInput) m;
+                Vector3f location = message.getLocation();
+                Vector3f direction = message.getDirection();
+
+                CollisionResults results = new CollisionResults();
+                Ray ray = new Ray(location, direction);
+                terrain.collideWith(ray, results);
+
             }
         }
     }

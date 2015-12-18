@@ -46,6 +46,7 @@ import maze.Maze;
 import mygame.Networking.*;
 import static gameobjects.Player.*;
 import maze.Treasure;
+import static mygame.ServerMain.*;
 
 /**
  * MazeRace (client).
@@ -82,11 +83,11 @@ public class ClientMain extends SimpleApplication {
 
     public static void main(String[] args) {
         app = new ClientMain();
-        
+
         AppSettings settings = new AppSettings(true);
         settings.setFrameRate(60);
         app.setSettings(settings);
-        
+
         app.start();
     }
 
@@ -208,9 +209,10 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharBackward", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_N), new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_B)); //maybe find a better binding?
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
-        inputManager.addListener(playerShootListener, "Shoot", "Mark");
+        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp");
     }
     /*
      * Handles player movement actions.
@@ -271,6 +273,14 @@ public class ClientMain extends SimpleApplication {
                     sendMessage(new MarkInput());
                 } else if (name.equals("Shoot") && !keyPressed) {
                     sendMessage(new FireInput());
+                } else if (name.equals("PickUp") && !keyPressed) {
+                    Vector3f player_pos = getPlayer().getWorldTranslation();
+                    Vector3f treasure_pos = rootNode.getChild("Treasure").getWorldTranslation();
+                    float distance = player_pos.distance(treasure_pos);
+
+                    if (distance < PICKUP_MARGIN) {
+                        sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
+                    }
                 }
             }
         }
@@ -583,6 +593,19 @@ public class ClientMain extends SimpleApplication {
                     }
                 });
             } else if (m instanceof TreasurePicked) {
+                TreasurePicked message = (TreasurePicked) m;
+                final int id = message.getPlayerID();
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        players.get(id).setTreasureMode(true);
+                        for (int i : players.keySet()) {
+                            if (i != id) {
+                                players.get(i).setTreasureMode(false);
+                            }
+                        }
+                        return null;
+                    }
+                });
             } else if (m instanceof Start) {
                 startGame();
             } else if (m instanceof End) {

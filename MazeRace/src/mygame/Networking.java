@@ -239,7 +239,23 @@ public class Networking {
     @Serializable
     public static class PickTreasureInput extends AbstractMessage {
 
+        private Vector3f location;
+        private Vector3f direction;
+        
         public PickTreasureInput() {
+        }
+        
+        public PickTreasureInput(Vector3f location, Vector3f direction) {
+            this.location = location;
+            this.direction = direction;
+        }
+        
+        public Vector3f getLocation() {
+            return location;
+        }
+        
+        public Vector3f getDirection() {
+            return direction;
         }
     }
 

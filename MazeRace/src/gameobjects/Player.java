@@ -7,9 +7,12 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.BetterCharacterControl;
+import com.jme3.font.BitmapFont;
+import com.jme3.font.BitmapText;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import com.jme3.scene.control.BillboardControl;
 import enums.Team;
 
 /**
@@ -20,7 +23,7 @@ import enums.Team;
 public class Player extends Node {
     //Objects
 
-    private Node player;
+    private Node player, treasure;
     private AudioNode audio_gun;
     private BetterCharacterControl characterControl;
     private AnimControl animationControl;
@@ -59,6 +62,17 @@ public class Player extends Node {
         audio_gun.setLooping(false);
         audio_gun.setVolume(2);
         this.attachChild(audio_gun);
+        
+        // Treasure text
+        BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
+        BitmapText hoverText = new BitmapText(guiFont, false);
+        hoverText.setSize(guiFont.getCharSet().getRenderedSize() * 0.5f);
+        hoverText.setText("Holding treasure");
+        treasure = new Node("TreasureText");
+        treasure.attachChild(hoverText);
+        BillboardControl bc = new BillboardControl();
+        treasure.addControl(bc);
+        treasure.setLocalTranslation(0, 40, 0);
 
         //AnimControl control setup animation
         animationControl = player.getControl(AnimControl.class);
@@ -141,5 +155,17 @@ public class Player extends Node {
         this.getCharacterControl().setWalkDirection(this.walkDirection);
 
         this.setPosition(position);
+    }
+    
+    public boolean hasTreasure() {
+        return this.hasChild(treasure);
+    }
+    
+    public void setTreasureMode(boolean activate) {
+        if(activate) { //activate
+            this.attachChild(treasure);
+        } else if(this.hasChild(treasure)) { //deactivate
+            this.detachChild(treasure);
+        }
     }
 }

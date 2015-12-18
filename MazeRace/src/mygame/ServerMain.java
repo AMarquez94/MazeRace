@@ -35,9 +35,10 @@ import mygame.Networking.*;
 public class ServerMain extends SimpleApplication {
 
     //CONSTANTS
-    private float TIMEOUT = 5f;
-    private static ServerMain app;
-    private final int MAX_PLAYERS = 6;
+    protected final static float TIMEOUT = 5f;
+    protected static ServerMain app;
+    protected final static int MAX_PLAYERS = 6;
+    protected final static int PICKUP_MARGIN = 5;
     //GLOBAL VARIABLES
     private static Server server;
     private HostedConnection[] hostedConnections;

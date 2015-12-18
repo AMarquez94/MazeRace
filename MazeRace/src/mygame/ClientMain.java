@@ -597,7 +597,13 @@ public class ClientMain extends SimpleApplication {
                 final int id = message.getPlayerID();
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
+                        //remove treasure from scene graph
+                        rootNode.detachChild(rootNode.getChild("Treasure"));
+
+                        //let player display it has treasure
                         players.get(id).setTreasureMode(true);
+
+                        //other players should not
                         for (int i : players.keySet()) {
                             if (i != id) {
                                 players.get(i).setTreasureMode(false);

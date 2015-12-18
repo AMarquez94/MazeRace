@@ -215,7 +215,6 @@ public class ServerMain extends SimpleApplication {
         return new Quaternion(r[0], r[1], r[2], r[3]);
     }
 
-    //TEMPORAL
     private class MessageHandler implements MessageListener<HostedConnection> {
 
         public void messageReceived(HostedConnection source, Message m) {
@@ -307,6 +306,8 @@ public class ServerMain extends SimpleApplication {
                 PickTreasureInput message = (PickTreasureInput) m;
                 Vector3f location = message.getLocation();
                 Vector3f direction = message.getDirection();
+                
+                
 
                 //temporarily always allow pickup TODO
                 server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));

@@ -62,7 +62,7 @@ public class ClientMain extends SimpleApplication {
     //scene graph
     private Node markNode = new Node("Marks");
     private Node playerNode = new Node("Players");
-    private Node treasureNode = new Node("Treasure");
+    private Treasure treasureNode = null;
     //terrain
     private TerrainQuad terrain;
     private Material mat_terrain;
@@ -123,7 +123,6 @@ public class ClientMain extends SimpleApplication {
         setUpLight();
         setUpKeys();
         new Maze(this).setUpWorld(rootNode, bas);
-        new Treasure(this).createTreasure(treasureNode, bas);
     }
 
     private Player getPlayer() {
@@ -592,6 +591,17 @@ public class ClientMain extends SimpleApplication {
                         return null;
                     }
                 });
+            } else if (m instanceof TreasureDropped) {
+                TreasureDropped message = (TreasureDropped) m;
+                final Vector3f location = message.getLocation();
+                
+                //create treasure if not exists yet
+                if (treasureNode == null) {
+                    treasureNode = new Treasure(app, bas);
+                }
+                
+                //put treasure in position
+                treasureNode.setLocalTranslation(location);
             } else if (m instanceof TreasurePicked) {
                 TreasurePicked message = (TreasurePicked) m;
                 final int id = message.getPlayerID();

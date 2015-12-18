@@ -25,6 +25,7 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
+import maze.Treasure;
 import mygame.Networking.*;
 
 /**
@@ -48,6 +49,7 @@ public class ServerMain extends SimpleApplication {
     private int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
+    private Vector3f treasureLocation;
     private TerrainQuad terrain;
     private float[] timeouts;
     private static Vector3f[] initialPositions;
@@ -80,6 +82,8 @@ public class ServerMain extends SimpleApplication {
         bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
+        
+        treasureLocation = new Vector3f(0f, -100f, 0f); //initial location of the treasure
 
         terrain = new Maze(this).setUpWorld(rootNode, bas);
         setUpInitialPositions();
@@ -230,6 +234,7 @@ public class ServerMain extends SimpleApplication {
                                         players[idNew].getTeam(), players[idNew].getPosition()));
                                 server.broadcast(Filters.in(hostedConnections),
                                         packPrepareMessage());
+                                server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
                             } else {
                                 server.broadcast(Filters.equalTo(source),
                                         new ConnectionRejected("Nickname already in use"));
@@ -303,10 +308,8 @@ public class ServerMain extends SimpleApplication {
                 Vector3f location = message.getLocation();
                 Vector3f direction = message.getDirection();
 
-                CollisionResults results = new CollisionResults();
-                Ray ray = new Ray(location, direction);
-                terrain.collideWith(ray, results);
-
+                //temporarily always allow pickup TODO
+                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
             }
         }
     }

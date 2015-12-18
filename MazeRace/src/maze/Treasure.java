@@ -34,7 +34,6 @@ public class Treasure extends Node {
         teapot.setMaterial(mat_default);
         this.attachChild(teapot);
         
-        bas.getPhysicsSpace().add(this);
     }
 
     public Vector3f getPosition() {

@@ -173,7 +173,6 @@ public class ClientMain extends SimpleApplication {
     private void setUpGraph() {
         rootNode.attachChild(markNode);
         rootNode.attachChild(playerNode);
-        rootNode.attachChild(treasureNode);
     }
 
     /*
@@ -594,12 +593,13 @@ public class ClientMain extends SimpleApplication {
             } else if (m instanceof TreasureDropped) {
                 TreasureDropped message = (TreasureDropped) m;
                 final Vector3f location = message.getLocation();
-                
+
                 //create treasure if not exists yet
                 if (treasureNode == null) {
                     treasureNode = new Treasure(app, bas);
+                    rootNode.attachChild(treasureNode);
                 }
-                
+
                 //put treasure in position
                 treasureNode.setLocalTranslation(location);
             } else if (m instanceof TreasurePicked) {

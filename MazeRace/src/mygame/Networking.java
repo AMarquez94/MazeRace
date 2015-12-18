@@ -41,6 +41,7 @@ public class Networking {
         Serializer.registerClass(End.class);
         Serializer.registerClass(Pause.class);
         Serializer.registerClass(Resume.class);
+        Serializer.registerClass(TreasureDropped.class);
     }
 
     /**

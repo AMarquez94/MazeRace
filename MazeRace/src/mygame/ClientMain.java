@@ -1,4 +1,3 @@
-
 package mygame;
 
 import com.jme3.animation.AnimChannel;
@@ -143,7 +142,6 @@ public class ClientMain extends SimpleApplication {
      */
     private void endGame(Team winner) {
         state = ClientGameState.GameStopped;
-
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         BitmapText ch = new BitmapText(guiFont, false);
         ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
@@ -262,9 +260,9 @@ public class ClientMain extends SimpleApplication {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (state == ClientGameState.GameRunning) {
                 if (name.equals("Mark") && !keyPressed) {
-                    sendMessage(new MarkInput());
+                    sendMessage(new MarkInput(cam.getDirection(), cam.getLocation()));
                 } else if (name.equals("Shoot") && !keyPressed) {
-                    sendMessage(new FireInput());
+                    sendMessage(new FireInput(cam.getDirection(), cam.getLocation()));
                 } else if (name.equals("PickUp") && !keyPressed) {
                     //if treasure is not picked up already
                     if (rootNode.hasChild(treasureNode)) {
@@ -369,7 +367,7 @@ public class ClientMain extends SimpleApplication {
             sendMessage(new PlayerMoved(getPlayer().getPosition(),
                     getPlayer().getCharacterControl().getViewDirection(),
                     getPlayer().getAnimChannel().getAnimationName()));
-            //System.out.println(getPlayer().getLocalRotation());
+
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));

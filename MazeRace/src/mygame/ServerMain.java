@@ -5,8 +5,11 @@ import com.jme3.app.StatsAppState;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
+import com.jme3.math.FastMath;
+import com.jme3.math.Plane;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
+import com.jme3.math.Rectangle;
 import com.jme3.math.Vector3f;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
@@ -121,11 +124,12 @@ public class ServerMain extends SimpleApplication {
                 periodic_threshold++;
             }
         } else if (state == ServerGameState.GameRunning) {
+            Plane plane;
             //check if player has scored
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure()) {
-                    float dist = p.getPosition().distance(getSpawnZoneCenter(p.getTeam()));
-                    if (dist < 5f) {
+                    plane = getSpawnZone(p.getTeam());
+                    if (FastMath.abs(plane.pseudoDistance(p.getPosition())) < 10f) {
                         System.out.println(p.getNickname() + " scored");
                         //The player has scored!
                         server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
@@ -165,18 +169,23 @@ public class ServerMain extends SimpleApplication {
         return rep;
     }
 
-    /**
-     * Gets the center of the spawn zone
-     *
-     * @param team
-     * @return
-     */
-    private Vector3f getSpawnZoneCenter(Team team) {
-        //NOTE i may have swapped the locations.
+    private Plane getSpawnZone(Team team) {
+        //NOTE could have swapped them..
+        Plane p = new Plane();
+        Vector3f a, b, c;
+
         if (team == Team.Red) {
-            return new Vector3f(4.69698f, -100.0f, -245.20134f);
+            a = new Vector3f(34.3f, -100f, -252.5f);
+            b = new Vector3f(34.3f, -95.1f, -252.5f);
+            c = new Vector3f(-24.7f, -100f, -252.5f);
+            p.setPlanePoints(a, b, c);
+            return p;
         } else if (team == Team.Blue) {
-            return new Vector3f(-6.002777f, -100.0f, 241.66374f);
+            a = new Vector3f(-11.1f, -100f, 250.5f);
+            b = new Vector3f(33.3f, -100f, 250.4f);
+            c = new Vector3f(33.3f, -95f, 250.4f);
+            p.setPlanePoints(a, b, c);
+            return p;
         } else {
             return null;
         }

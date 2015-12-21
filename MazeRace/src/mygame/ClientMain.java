@@ -213,9 +213,10 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_N), new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_B)); //maybe find a better binding?
+        inputManager.addMapping("Pos", new KeyTrigger(KeyInput.KEY_P));
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
-        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp");
+        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp", "Pos");
     }
     /*
      * Handles player movement actions.
@@ -274,6 +275,8 @@ public class ClientMain extends SimpleApplication {
                             sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
                         }
                     }
+                } else if (name.equals("Pos") && !keyPressed) {
+                    System.out.println(getPlayer().getWorldTranslation());
                 }
             }
         }
@@ -589,14 +592,19 @@ public class ClientMain extends SimpleApplication {
                 TreasureDropped message = (TreasureDropped) m;
                 final Vector3f location = message.getLocation();
 
-                //create treasure if not exists yet
-                if (treasureNode == null) {
-                    treasureNode = new Treasure(app, bas);
-                    rootNode.attachChild(treasureNode);
-                }
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        //create treasure if not exists yet
+                        if (treasureNode == null) {
+                            treasureNode = new Treasure(app, bas);
+                            rootNode.attachChild(treasureNode);
+                        }
 
-                //put treasure in position
-                treasureNode.setLocalTranslation(location);
+                        //put treasure in position
+                        treasureNode.setLocalTranslation(location);
+                        return null;
+                    }
+                });
             } else if (m instanceof TreasurePicked) {
                 TreasurePicked message = (TreasurePicked) m;
                 final int id = message.getPlayerID();

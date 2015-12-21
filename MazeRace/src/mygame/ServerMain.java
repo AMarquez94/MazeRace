@@ -82,7 +82,7 @@ public class ServerMain extends SimpleApplication {
         bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
-        
+
         treasureLocation = new Vector3f(0f, -100f, 0f); //initial location of the treasure
 
         terrain = new Maze(this).setUpWorld(rootNode, bas);
@@ -120,6 +120,20 @@ public class ServerMain extends SimpleApplication {
             } else {
                 periodic_threshold++;
             }
+        } else if (state == ServerGameState.GameRunning) {
+            //check if player has scored
+            for (ServerPlayer p : players) {
+                if (p != null && p.getHasTreasure()) {
+                    float dist = p.getPosition().distance(getSpawnZoneCenter(p.getTeam()));
+                    if (dist < 5f) {
+                        System.out.println(p.getNickname() + " scored");
+                        //The player has scored!
+                        server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
+                        changeGameState(ServerGameState.GameStopped);
+                        //TODO maybe reset the game now?
+                    }
+                }
+            }
         }
     }
 
@@ -149,6 +163,23 @@ public class ServerMain extends SimpleApplication {
             }
         }
         return rep;
+    }
+
+    /**
+     * Gets the center of the spawn zone
+     *
+     * @param team
+     * @return
+     */
+    private Vector3f getSpawnZoneCenter(Team team) {
+        //NOTE i may have swapped the locations.
+        if (team == Team.Red) {
+            return new Vector3f(4.69698f, -100.0f, -245.20134f);
+        } else if (team == Team.Blue) {
+            return new Vector3f(-6.002777f, -100.0f, 241.66374f);
+        } else {
+            return null;
+        }
     }
 
     /*
@@ -275,7 +306,7 @@ public class ServerMain extends SimpleApplication {
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
-                
+
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();
 
@@ -310,11 +341,13 @@ public class ServerMain extends SimpleApplication {
                 PickTreasureInput message = (PickTreasureInput) m;
                 Vector3f location = message.getLocation();
                 Vector3f direction = message.getDirection();
-                
-                
+
+
 
                 //temporarily always allow pickup TODO
-                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
+                int id = findId(source);
+                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(id));
+                players[id].setHasTreasure(true); //maybe unset at other players?    
             }
         }
     }
@@ -328,7 +361,6 @@ public class ServerMain extends SimpleApplication {
             if (newState == ServerGameState.GameRunning) {
                 server.broadcast(new Start());
             } else if (newState == ServerGameState.GameStopped) {
-                
             }
 
             state = newState;

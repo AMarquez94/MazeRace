@@ -142,7 +142,7 @@ public class ClientMain extends SimpleApplication {
      */
     private void endGame(Team winner) {
         state = ClientGameState.GameStopped;
-        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        //guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         BitmapText ch = new BitmapText(guiFont, false);
         ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
         ch.setText(winner + " has won!");

@@ -26,7 +26,7 @@ public class Mark extends Geometry {
         
         this.team = team;
         
-        Sphere sphere = new Sphere(30, 30, 1f);
+        Sphere sphere = new Sphere(30, 30, 0.3f);
         this.setName("Mark");
         this.setMesh(sphere);
         

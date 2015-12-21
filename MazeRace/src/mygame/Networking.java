@@ -126,12 +126,29 @@ public class Networking {
     }
 
     /**
-     * Client -> Server Client informs the Server that he wants to shoot
+     * Client -> Server Client informs the Server that he wants to shoot and 
+     * the direction he was aiming
      */
     @Serializable
     public static class FireInput extends AbstractMessage {
 
+        private Vector3f direction; 
+        private Vector3f position;
+       
         public FireInput() {
+        }
+        
+        public FireInput(Vector3f direction, Vector3f position){
+            this.direction = direction;
+            this.position = position;
+        }
+
+        public Vector3f getDirection() {
+            return direction;
+        }
+        
+        public Vector3f getPosition() {
+            return position;
         }
     }
 
@@ -439,11 +456,28 @@ public class Networking {
 
     /**
      * Client -> Server Client says to the server that wants to paint the wall
+     * and the direction he was aiming
      */
     @Serializable
     public static class MarkInput extends AbstractMessage {
 
+        private Vector3f direction;
+        private Vector3f position;
+        
         public MarkInput() {
+        }
+        
+        public MarkInput(Vector3f direction, Vector3f position){
+            this.direction = direction;
+            this.position = position;
+        }
+
+        public Vector3f getDirection() {
+            return direction;
+        }
+        
+        public Vector3f getPosition() {
+            return position;
         }
     }
     

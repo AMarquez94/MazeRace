@@ -255,9 +255,9 @@ public class ClientMain extends SimpleApplication {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (state == ClientGameState.GameRunning) {
                 if (name.equals("Mark") && !keyPressed) {
-                    sendMessage(new MarkInput());
+                    sendMessage(new MarkInput(cam.getDirection(),cam.getLocation()));
                 } else if (name.equals("Shoot") && !keyPressed) {
-                    sendMessage(new FireInput());
+                    sendMessage(new FireInput(cam.getDirection(),cam.getLocation()));
                 } else if (name.equals("PickUp") && !keyPressed) {
                     //if treasure is not picked up already
                     if (rootNode.hasChild(treasureNode)) {

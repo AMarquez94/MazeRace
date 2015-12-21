@@ -272,8 +272,12 @@ public class ServerMain extends SimpleApplication {
                 });
             } else if (m instanceof MarkInput) {
 
+                MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
+                
+                final Vector3f direction = message.getDirection();
+                final Vector3f position = message.getPosition();
 
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
@@ -281,7 +285,7 @@ public class ServerMain extends SimpleApplication {
                             CollisionResults results = new CollisionResults();
 
                             //Must be changed by the coordinates and direction of the character
-                            Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                            Ray ray = new Ray(position, direction);
                             terrain.collideWith(ray, results);
 
                             if (results.size() > 0) {

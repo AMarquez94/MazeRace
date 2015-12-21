@@ -46,6 +46,7 @@ import maze.Maze;
 import mygame.Networking.*;
 import static gameobjects.Player.*;
 import maze.Treasure;
+import static mygame.ServerMain.*;
 
 /**
  * MazeRace (client).
@@ -61,7 +62,7 @@ public class ClientMain extends SimpleApplication {
     //scene graph
     private Node markNode = new Node("Marks");
     private Node playerNode = new Node("Players");
-    private Node treasureNode = new Node("Treasure");
+    private Treasure treasureNode = null;
     //terrain
     private TerrainQuad terrain;
     private Material mat_terrain;
@@ -82,11 +83,11 @@ public class ClientMain extends SimpleApplication {
 
     public static void main(String[] args) {
         app = new ClientMain();
-        
+
         AppSettings settings = new AppSettings(true);
         settings.setFrameRate(60);
         app.setSettings(settings);
-        
+
         app.start();
     }
 
@@ -122,7 +123,6 @@ public class ClientMain extends SimpleApplication {
         setUpLight();
         setUpKeys();
         new Maze(this).setUpWorld(rootNode, bas);
-        new Treasure(this).createTreasure(treasureNode, bas);
     }
 
     private Player getPlayer() {
@@ -173,7 +173,6 @@ public class ClientMain extends SimpleApplication {
     private void setUpGraph() {
         rootNode.attachChild(markNode);
         rootNode.attachChild(playerNode);
-        rootNode.attachChild(treasureNode);
     }
 
     /*
@@ -208,9 +207,10 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharBackward", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_N), new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_B)); //maybe find a better binding?
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
-        inputManager.addListener(playerShootListener, "Shoot", "Mark");
+        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp");
     }
     /*
      * Handles player movement actions.
@@ -255,22 +255,20 @@ public class ClientMain extends SimpleApplication {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (state == ClientGameState.GameRunning) {
                 if (name.equals("Mark") && !keyPressed) {
-                    /*Delete this section when implemented in server -----
-                     CollisionResults results = new CollisionResults();
-                     Ray ray = new Ray(cam.getLocation(), cam.getDirection());
-                     terrain.collideWith(ray, results);
-
-
-                     if (results.size() > 0) {
-                     CollisionResult closest = results.getClosestCollision();
-                     Mark mark = new Mark(getPlayer().getTeam(), app);
-                     mark.setLocalTranslation(closest.getContactPoint());
-                     markNode.attachChild(mark);
-                     }*/
-
                     sendMessage(new MarkInput());
                 } else if (name.equals("Shoot") && !keyPressed) {
                     sendMessage(new FireInput());
+                } else if (name.equals("PickUp") && !keyPressed) {
+                    //if treasure is not picked up already
+                    if (rootNode.hasChild(treasureNode)) {
+                        Vector3f player_pos = getPlayer().getWorldTranslation();
+                        Vector3f treasure_pos = treasureNode.getWorldTranslation();
+                        float distance = player_pos.distance(treasure_pos);
+
+                        if (distance < PICKUP_MARGIN) { //TODO test for a good value for PICKUP_MARGIN
+                            sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
+                        }
+                    }
                 }
             }
         }
@@ -582,7 +580,38 @@ public class ClientMain extends SimpleApplication {
                         return null;
                     }
                 });
+            } else if (m instanceof TreasureDropped) {
+                TreasureDropped message = (TreasureDropped) m;
+                final Vector3f location = message.getLocation();
+
+                //create treasure if not exists yet
+                if (treasureNode == null) {
+                    treasureNode = new Treasure(app, bas);
+                    rootNode.attachChild(treasureNode);
+                }
+
+                //put treasure in position
+                treasureNode.setLocalTranslation(location);
             } else if (m instanceof TreasurePicked) {
+                TreasurePicked message = (TreasurePicked) m;
+                final int id = message.getPlayerID();
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        //remove treasure from scene graph
+                        rootNode.detachChild(rootNode.getChild("Treasure"));
+
+                        //let player display it has treasure
+                        players.get(id).setTreasureMode(true);
+
+                        //other players should not
+                        for (int i : players.keySet()) {
+                            if (i != id) {
+                                players.get(i).setTreasureMode(false);
+                            }
+                        }
+                        return null;
+                    }
+                });
             } else if (m instanceof Start) {
                 startGame();
             } else if (m instanceof End) {

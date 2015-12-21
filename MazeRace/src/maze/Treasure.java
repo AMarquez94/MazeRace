@@ -14,38 +14,33 @@ import com.jme3.scene.Spatial;
 
 /**
  *
- * @author Dominik
+ * @author NVE Project
  */
-public class Treasure {
+public class Treasure extends Node {
 
     //#TODO change treausre
     //#TODO change location
-    
     private SimpleApplication simpleApplication;
     private AssetManager assetManager;
-    private Node treasure = new Node("Treasure");
 
-    public Treasure(SimpleApplication simpleApplication) {
+    public Treasure(SimpleApplication simpleApplication, BulletAppState bas) {
+        this.setName("Treasure");
         this.simpleApplication = simpleApplication;
         this.assetManager = this.simpleApplication.getAssetManager();
-    }
 
-    public void createTreasure(Node treasureNode, BulletAppState bas) {
         Spatial teapot = assetManager.loadModel("Models/Teapot/Teapot.obj");
         Material mat_default = new Material(
                 assetManager, "Common/MatDefs/Misc/ShowNormals.j3md");
         teapot.setMaterial(mat_default);
+        this.attachChild(teapot);
         
-        treasure.setLocalTranslation(0f, -100f, 0f);
-        treasure.attachChild(teapot);
-        treasureNode.attachChild(treasure);
     }
-    
-    public Vector3f getPosition(){
-        return treasure.getLocalTranslation();
+
+    public Vector3f getPosition() {
+        return this.getLocalTranslation();
     }
-    
+
     public void setPosition(Vector3f position) {
-        treasure.setLocalTranslation(position);
+        this.setLocalTranslation(position);
     }
 }

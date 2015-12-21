@@ -41,6 +41,7 @@ public class Networking {
         Serializer.registerClass(End.class);
         Serializer.registerClass(Pause.class);
         Serializer.registerClass(Resume.class);
+        Serializer.registerClass(TreasureDropped.class);
     }
 
     /**
@@ -239,7 +240,44 @@ public class Networking {
     @Serializable
     public static class PickTreasureInput extends AbstractMessage {
 
+        private Vector3f location;
+        private Vector3f direction;
+        
         public PickTreasureInput() {
+        }
+        
+        public PickTreasureInput(Vector3f location, Vector3f direction) {
+            this.location = location;
+            this.direction = direction;
+        }
+        
+        public Vector3f getLocation() {
+            return location;
+        }
+        
+        public Vector3f getDirection() {
+            return direction;
+        }
+    }
+    
+    /**
+     * Server -> Clients Server says where the treasure is dropped
+     * Also used when initializing the treasure
+     */
+    @Serializable
+    public static class TreasureDropped extends AbstractMessage {
+        private Vector3f location;
+        
+        public TreasureDropped() {
+            
+        }
+        
+        public TreasureDropped(Vector3f location) {
+            this.location = location;
+        }
+        
+        public Vector3f getLocation() {
+            return this.location;
         }
     }
 

@@ -5,6 +5,7 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -142,12 +143,12 @@ public class ClientMain extends SimpleApplication {
      */
     private void endGame(Team winner) {
         state = ClientGameState.GameStopped;
-        //guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        BitmapFont guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         BitmapText ch = new BitmapText(guiFont, false);
         ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
         ch.setText(winner + " has won!");
         ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
-        guiNode.attachChild(ch);
+        //guiNode.attachChild(ch);
     }
 
     /*

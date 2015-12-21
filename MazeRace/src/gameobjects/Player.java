@@ -63,15 +63,27 @@ public class Player extends Node {
         audio_gun.setVolume(2);
         this.attachChild(audio_gun);
         
-        // Treasure text
+        // Nickname
         BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
         BitmapText hoverText = new BitmapText(guiFont, false);
-        hoverText.setSize(guiFont.getCharSet().getRenderedSize() * 0.5f);
-        hoverText.setText("Holding treasure");
-        treasure = new Node("TreasureText");
-        treasure.attachChild(hoverText);
+        hoverText.setSize(guiFont.getCharSet().getRenderedSize() * 0.1f);
+        hoverText.setText(this.nickname + "");
+        Node nicknameNode = new Node("Nickname");
+        nicknameNode.attachChild(hoverText);
         BillboardControl bc = new BillboardControl();
-        treasure.addControl(bc);
+        nicknameNode.addControl(bc);
+        nicknameNode.setLocalTranslation(0, 10, 0);
+        this.attachChild(nicknameNode);
+        
+        
+        // Treasure text
+        BitmapText treasureText = new BitmapText(guiFont, false);
+        treasureText.setSize(guiFont.getCharSet().getRenderedSize() * 0.5f);
+        treasureText.setText("Holding treasure");
+        treasure = new Node("TreasureText");
+        treasure.attachChild(treasureText);
+        BillboardControl bct = new BillboardControl();
+        treasure.addControl(bct);
         treasure.setLocalTranslation(0, 40, 0);
 
         //AnimControl control setup animation

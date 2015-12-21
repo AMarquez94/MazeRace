@@ -25,6 +25,7 @@ public class ServerPlayer extends Node {
     private Vector3f position;
     private String nickname;
     private Vector3f orientation;
+    private boolean hasTreasure;
 
     public ServerPlayer(Team team, Vector3f position, String nickname, 
             Vector3f orientation, SimpleApplication app) {
@@ -32,6 +33,7 @@ public class ServerPlayer extends Node {
         this.position = position;
         this.nickname = nickname;
         this.orientation = orientation;
+        this.hasTreasure = false;
 
         // Load model
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
@@ -102,6 +104,14 @@ public class ServerPlayer extends Node {
         this.orientation = orientation;
         Quaternion q = new Quaternion(orientation.x, orientation.y, orientation.z, 1.0f);
         this.setLocalRotation(q);
+    }
+    
+    public void setHasTreasure(boolean hasTreasure) {
+        this.hasTreasure = hasTreasure;
+    }
+    
+    public boolean getHasTreasure() {
+        return this.hasTreasure;
     }
     
     

@@ -142,7 +142,13 @@ public class ClientMain extends SimpleApplication {
      */
     private void endGame(Team winner) {
         state = ClientGameState.GameStopped;
-        //TODO announce winning team
+
+        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        BitmapText ch = new BitmapText(guiFont, false);
+        ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
+        ch.setText(winner + " has won!");
+        ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
+        guiNode.attachChild(ch);
     }
 
     /*
@@ -362,7 +368,7 @@ public class ClientMain extends SimpleApplication {
             sendMessage(new PlayerMoved(getPlayer().getPosition(),
                     getPlayer().getCharacterControl().getViewDirection(),
                     getPlayer().getAnimChannel().getAnimationName()));
-            System.out.println(getPlayer().getLocalRotation());
+            //System.out.println(getPlayer().getLocalRotation());
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
@@ -616,7 +622,12 @@ public class ClientMain extends SimpleApplication {
                 startGame();
             } else if (m instanceof End) {
                 final End message = (End) m;
-                endGame(message.winnerTeam);
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        endGame(message.winnerTeam);
+                        return null;
+                    }
+                });
             } else if (m instanceof Pause) {
                 //not implemented yet
             } else if (m instanceof Resume) {

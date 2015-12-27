@@ -352,21 +352,24 @@ public class Networking {
 
     /**
      * Client -> Server Client says to the server that its new position,
-     * rotation and current animation is "position", "rotation" and "animation"
+     * rotation and current animation is "position", "rotation", orientation
+     * (where the player looks) "orientation" and "animation"
      */
     @Serializable
     public static class PlayerMoved extends AbstractMessage {
 
         Vector3f position;
-        Vector3f rotation;
+        float[] rotation;
+        Vector3f orientation;
         String animation;
 
         public PlayerMoved() {
         }
 
-        public PlayerMoved(Vector3f position, Vector3f rotation, String animation) {
+        public PlayerMoved(Vector3f position, float[] rotation, Vector3f orientation, String animation) {
             this.position = position;
             this.rotation = rotation;
+            this.orientation = orientation;
             this.animation = animation;
         }
 
@@ -374,34 +377,41 @@ public class Networking {
             return position;
         }
 
-        public Vector3f getRotation() {
+        public float[] getRotation() {
             return rotation;
         }
 
         public String getAnimation() {
             return animation;
         }
+
+        public Vector3f getOrientation() {
+            return orientation;
+        }
     }
 
     /**
      * Server -> Client Server says the other clients that the player with ID
-     * "playerID" is in position "position", with rotation "rotation" and
-     * performing the animation "animation"
+     * "playerID" is in position "position", with rotation "rotation", orientation
+     * (where the player looks) "orientation", and performing the animation "animation"
      */
     @Serializable
     public static class MovingPlayers extends AbstractMessage {
 
         int playerID;
         Vector3f position;
-        Vector3f rotation;
+        float[] rotation;
+        Vector3f orientation;
         String animation;
 
         public MovingPlayers() {
         }
 
-        public MovingPlayers(int playerID, Vector3f position, Vector3f rotation, String animation) {
+        public MovingPlayers(int playerID, Vector3f position, float[] rotation,
+                Vector3f orientation, String animation) {
             this.playerID = playerID;
             this.position = position;
+            this.orientation = orientation;
             this.rotation = rotation;
             this.animation = animation;
         }
@@ -414,12 +424,16 @@ public class Networking {
             return position;
         }
 
-        public Vector3f getRotation() {
+        public float[] getRotation() {
             return rotation;
         }
 
         public String getAnimation() {
             return animation;
+        }
+
+        public Vector3f getOrientation() {
+            return orientation;
         }
     }
 

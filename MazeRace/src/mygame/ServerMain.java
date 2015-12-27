@@ -5,11 +5,8 @@ import com.jme3.app.StatsAppState;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.collision.CollisionResult;
 import com.jme3.collision.CollisionResults;
-import com.jme3.math.FastMath;
-import com.jme3.math.Plane;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
-import com.jme3.math.Rectangle;
 import com.jme3.math.Vector3f;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
@@ -18,6 +15,7 @@ import com.jme3.network.MessageListener;
 import com.jme3.network.Network;
 import com.jme3.network.Server;
 import com.jme3.renderer.RenderManager;
+import com.jme3.scene.Node;
 import com.jme3.system.JmeContext;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import enums.ServerGameState;
@@ -28,7 +26,6 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
-import maze.Treasure;
 import mygame.Networking.*;
 
 /**
@@ -59,6 +56,7 @@ public class ServerMain extends SimpleApplication {
     private float periodic_threshold = 0; //temporary
     //game state
     private static ServerGameState state;
+    private Node shootables;
 
     //
     public static void main(String[] args) {
@@ -85,7 +83,8 @@ public class ServerMain extends SimpleApplication {
         bas = new BulletAppState();
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
-
+        bas.getPhysicsSpace().enableDebug(assetManager);
+        
         treasureLocation = new Vector3f(0f, -100f, 0f); //initial location of the treasure
 
         terrain = new Maze(this).setUpWorld(rootNode, bas);
@@ -108,7 +107,10 @@ public class ServerMain extends SimpleApplication {
         }
 
         state = ServerGameState.GameStopped;
+        cam.setLocation(new Vector3f(0.74115396f, -70.0f, -150.33556f));
         this.pauseOnFocus = false;
+        shootables = new Node("Shootables");
+        rootNode.attachChild(shootables);
 
         new ServerControl(this);
     }
@@ -122,21 +124,6 @@ public class ServerMain extends SimpleApplication {
                 periodic_threshold = 0;
             } else {
                 periodic_threshold++;
-            }
-        } else if (state == ServerGameState.GameRunning) {
-            Plane plane;
-            //check if player has scored
-            for (ServerPlayer p : players) {
-                if (p != null && p.getHasTreasure()) {
-                    plane = getSpawnZone(p.getTeam());
-                    if (FastMath.abs(plane.pseudoDistance(p.getPosition())) < 10f) {
-                        System.out.println(p.getNickname() + " scored");
-                        //The player has scored!
-                        server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
-                        changeGameState(ServerGameState.GameStopped);
-                        //TODO maybe reset the game now?
-                    }
-                }
             }
         }
     }
@@ -169,28 +156,6 @@ public class ServerMain extends SimpleApplication {
         return rep;
     }
 
-    private Plane getSpawnZone(Team team) {
-        //NOTE could have swapped them..
-        Plane p = new Plane();
-        Vector3f a, b, c;
-
-        if (team == Team.Red) {
-            a = new Vector3f(34.3f, -100f, -252.5f);
-            b = new Vector3f(34.3f, -95.1f, -252.5f);
-            c = new Vector3f(-24.7f, -100f, -252.5f);
-            p.setPlanePoints(a, b, c);
-            return p;
-        } else if (team == Team.Blue) {
-            a = new Vector3f(-11.1f, -100f, 250.5f);
-            b = new Vector3f(33.3f, -100f, 250.4f);
-            c = new Vector3f(33.3f, -95f, 250.4f);
-            p.setPlanePoints(a, b, c);
-            return p;
-        } else {
-            return null;
-        }
-    }
-
     /*
      * Connects a player and returns its id
      */
@@ -199,16 +164,17 @@ public class ServerMain extends SimpleApplication {
         boolean find = false;
         while (i < players.length && !find) {
             if (players[i] == null) {
-                players[i] = new ServerPlayer(chooseTeam(i), initialPositions[i],
-                        nickname, new Vector3f(0f, 0f, 0f), app);
+                players[i] = new ServerPlayer(i,chooseTeam(i), initialPositions[i],
+                        nickname, app);
+                //players[i].addToPhysicsSpace(bas);
                 hostedConnections[i] = s;
                 connectedPlayers++;
+                shootables.attachChild(players[i]);
                 find = true;
             } else {
                 i++;
             }
         }
-        System.out.println(i);
         return i;
     }
 
@@ -257,23 +223,30 @@ public class ServerMain extends SimpleApplication {
 
     private class MessageHandler implements MessageListener<HostedConnection> {
 
-        public void messageReceived(HostedConnection source, Message m) {
+        public void messageReceived(final HostedConnection source, Message m) {
 
             if (m instanceof Connect) {
                 Connect message = (Connect) m;
-                String nickname = message.getNickname();
+                final String nickname = message.getNickname();
                 if (state == ServerGameState.GameStopped) {
                     if (connectedPlayers != MAX_PLAYERS) {
                         if (nickname.length() > 0 && nickname.length() <= 8) {
                             if (!repeatedNickname(nickname)) {
                                 //TODO ID must be saved
-                                int idNew = connectPlayer(nickname, source);
-                                server.broadcast(Filters.in(hostedConnections),
-                                        new NewPlayerConnected(idNew, players[idNew].getNickname(),
-                                        players[idNew].getTeam(), players[idNew].getPosition()));
-                                server.broadcast(Filters.in(hostedConnections),
-                                        packPrepareMessage());
-                                server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                                app.enqueue(new Callable() {
+                                    public Object call() throws Exception {
+                                        //Set up the character. TODO does not include orientation (maybe not needed)
+                                        int idNew = connectPlayer(nickname, source);
+                                        server.broadcast(Filters.in(hostedConnections),
+                                                new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                                                players[idNew].getTeam(), players[idNew].getPosition()));
+                                        server.broadcast(Filters.in(hostedConnections),
+                                                packPrepareMessage());
+                                        server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                                        return null;
+                                    }
+                                });
+                                
                             } else {
                                 server.broadcast(Filters.equalTo(source),
                                         new ConnectionRejected("Nickname already in use"));
@@ -299,14 +272,16 @@ public class ServerMain extends SimpleApplication {
 
                 final String animation = message.getAnimation();
                 final Vector3f position = message.getPosition();
-                final Vector3f rotation = message.getRotation();
+                final float[] rotation = message.getRotation();
+                final Vector3f orientation = message.getOrientation();
+                
 
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         players[id].setPosition(position);
-                        players[id].setOrientation(rotation);
+                        players[id].setOrientation(arrayToQuaternion(rotation));
                         server.broadcast(Filters.in(hostedConnections),
-                                new MovingPlayers(id, position, rotation, animation));
+                                new MovingPlayers(id, position, rotation, orientation, animation));
                         return null;
                     }
                 });
@@ -315,7 +290,7 @@ public class ServerMain extends SimpleApplication {
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
-
+                
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();
 
@@ -338,7 +313,33 @@ public class ServerMain extends SimpleApplication {
                     }
                 });
             } else if (m instanceof FireInput) {
-                int id = findId(source);
+                
+                FireInput message = (FireInput) m;
+                final int id = findId(source);
+                timeouts[id] = TIMEOUT;
+                
+                final Vector3f direction = message.getDirection();
+                final Vector3f position = message.getPosition();
+
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        if (state == ServerGameState.GameRunning) {
+                            CollisionResults results = new CollisionResults();
+                            //Must be changed by the coordinates and direction of the character
+                            Ray ray = new Ray(position, direction);
+                            
+                            shootables.collideWith(ray, results);
+                            if(results.size() > 0){
+                                int shooted = checkShooted(id,results);
+                                if(shooted >= 0){
+                                    server.broadcast(Filters.in(hostedConnections),
+                                                new PlayerShooted(shooted, id));
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                });
 
                 /* TODO Calculate what it has hit.
                  and send messages according to what it has hit.
@@ -350,13 +351,11 @@ public class ServerMain extends SimpleApplication {
                 PickTreasureInput message = (PickTreasureInput) m;
                 Vector3f location = message.getLocation();
                 Vector3f direction = message.getDirection();
-
-
+                
+                
 
                 //temporarily always allow pickup TODO
-                int id = findId(source);
-                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(id));
-                players[id].setHasTreasure(true); //maybe unset at other players?    
+                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
             }
         }
     }
@@ -370,6 +369,7 @@ public class ServerMain extends SimpleApplication {
             if (newState == ServerGameState.GameRunning) {
                 server.broadcast(new Start());
             } else if (newState == ServerGameState.GameStopped) {
+                server.broadcast(new End(Team.Blue)); //TODO should be passed the winning team
             }
 
             state = newState;
@@ -418,5 +418,25 @@ public class ServerMain extends SimpleApplication {
         } else {
             return -1;
         }
+    }
+    
+    /**
+     * Returns the index of the first player that has been shooted. (-1 if didn't
+     * shoot anything)
+     */
+    private int checkShooted(int id, CollisionResults results){
+        int result = -1;
+        int i = 0;
+        boolean find = false;
+        while(i<results.size() && !find){
+            int shooted = Integer.parseInt(results.getCollision(i)
+                    .getGeometry().getParent().getName());
+            if(id != shooted){
+                result = shooted;
+                find = true;
+            }
+            else i++;
+        }
+        return result;
     }
 }

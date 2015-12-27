@@ -5,7 +5,6 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -96,6 +95,7 @@ public class ClientMain extends SimpleApplication {
     public void simpleInitApp() {
         state = ClientGameState.NicknameScreen;
         Networking.initialiseSerializables();
+        
 
         //flyCam.setEnabled(false);
         setUpNetworking();
@@ -118,8 +118,10 @@ public class ClientMain extends SimpleApplication {
 
         //Set up the environment
         bas = new BulletAppState();
+        
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
+        bas.getPhysicsSpace().enableDebug(assetManager);
         setUpGraph();
         setUpLight();
         setUpKeys();
@@ -143,12 +145,7 @@ public class ClientMain extends SimpleApplication {
      */
     private void endGame(Team winner) {
         state = ClientGameState.GameStopped;
-        BitmapFont guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        BitmapText ch = new BitmapText(guiFont, false);
-        ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
-        ch.setText(winner + " has won!");
-        ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
-        //guiNode.attachChild(ch);
+        //TODO announce winning team
     }
 
     /*
@@ -214,10 +211,9 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_N), new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_B)); //maybe find a better binding?
-        inputManager.addMapping("Pos", new KeyTrigger(KeyInput.KEY_P));
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
-        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp", "Pos");
+        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp");
     }
     /*
      * Handles player movement actions.
@@ -262,9 +258,9 @@ public class ClientMain extends SimpleApplication {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (state == ClientGameState.GameRunning) {
                 if (name.equals("Mark") && !keyPressed) {
-                    sendMessage(new MarkInput(cam.getDirection(), cam.getLocation()));
+                    sendMessage(new MarkInput(cam.getDirection(),cam.getLocation()));
                 } else if (name.equals("Shoot") && !keyPressed) {
-                    sendMessage(new FireInput(cam.getDirection(), cam.getLocation()));
+                    sendMessage(new FireInput(cam.getDirection(),cam.getLocation()));
                 } else if (name.equals("PickUp") && !keyPressed) {
                     //if treasure is not picked up already
                     if (rootNode.hasChild(treasureNode)) {
@@ -276,8 +272,6 @@ public class ClientMain extends SimpleApplication {
                             sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
                         }
                     }
-                } else if (name.equals("Pos") && !keyPressed) {
-                    System.out.println(getPlayer().getWorldTranslation());
                 }
             }
         }
@@ -369,9 +363,9 @@ public class ClientMain extends SimpleApplication {
 
             //send new state to server TODO: rotation
             sendMessage(new PlayerMoved(getPlayer().getPosition(),
+                    quaternionToArray(getPlayer().getWorldRotation()),
                     getPlayer().getCharacterControl().getViewDirection(),
                     getPlayer().getAnimChannel().getAnimationName()));
-
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
@@ -530,7 +524,7 @@ public class ClientMain extends SimpleApplication {
                             Player p = players.get(message.getPlayerID());
                             p.getCharacterControl().warp(message.getPosition());
                             p.setPosition(message.getPosition());
-                            Vector3f rotation = message.getRotation();
+                            Vector3f rotation = message.getOrientation();
                             p.getCharacterControl().setViewDirection(rotation);
 
                             //change anim only if not the same, else shocking motion
@@ -553,6 +547,7 @@ public class ClientMain extends SimpleApplication {
                 });
             } else if (m instanceof PlayerShooted) {
                 final PlayerShooted message = (PlayerShooted) m;
+                System.out.println("I (" + message.getShootedPlayerId() + ") have been shooted by " + message.getShootingPlayerId());
                 //TODO decrease health points?
             } else if (m instanceof DeadPlayer) {
                 final DeadPlayer message = (DeadPlayer) m;
@@ -593,19 +588,14 @@ public class ClientMain extends SimpleApplication {
                 TreasureDropped message = (TreasureDropped) m;
                 final Vector3f location = message.getLocation();
 
-                app.enqueue(new Callable() {
-                    public Object call() throws Exception {
-                        //create treasure if not exists yet
-                        if (treasureNode == null) {
-                            treasureNode = new Treasure(app, bas);
-                            rootNode.attachChild(treasureNode);
-                        }
+                //create treasure if not exists yet
+                if (treasureNode == null) {
+                    treasureNode = new Treasure(app, bas);
+                    rootNode.attachChild(treasureNode);
+                }
 
-                        //put treasure in position
-                        treasureNode.setLocalTranslation(location);
-                        return null;
-                    }
-                });
+                //put treasure in position
+                treasureNode.setLocalTranslation(location);
             } else if (m instanceof TreasurePicked) {
                 TreasurePicked message = (TreasurePicked) m;
                 final int id = message.getPlayerID();
@@ -630,12 +620,7 @@ public class ClientMain extends SimpleApplication {
                 startGame();
             } else if (m instanceof End) {
                 final End message = (End) m;
-                app.enqueue(new Callable() {
-                    public Object call() throws Exception {
-                        endGame(message.winnerTeam);
-                        return null;
-                    }
-                });
+                endGame(message.winnerTeam);
             } else if (m instanceof Pause) {
                 //not implemented yet
             } else if (m instanceof Resume) {

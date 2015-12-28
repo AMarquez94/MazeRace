@@ -258,7 +258,7 @@ public class ServerMain extends SimpleApplication {
                         }
                     } else {
                         server.broadcast(Filters.equalTo(source),
-                                new ConnectionRejected("Maximal number of clients already connected"));
+                                new ConnectionRejected("Maximum number of clients already connected"));
                     }
                 } else {
                     server.broadcast(Filters.equalTo(source),

@@ -80,6 +80,8 @@ public class ClientMain extends SimpleApplication {
     private float counter;
     private NicknameHUDListener initialListener;
     private BitmapText nickNameHud;
+    
+    private String nickNameHudAux = "";
 
     public static void main(String[] args) {
         app = new ClientMain();
@@ -298,15 +300,17 @@ public class ClientMain extends SimpleApplication {
     @Override
     public void simpleUpdate(float tpf) {
         if (state == ClientGameState.NicknameScreen || getPlayer() == null) {
+            
+            
             /* Nickname part */
             counter += tpf;
             if (counter > 0.5f) {
-                nickNameHud.setText("Insert nickname: " + nickname + "|");
+                nickNameHud.setText(nickNameHudAux + "Insert nickname: " + nickname + "|");
                 if (counter > 1f) {
                     counter = 0;
                 }
             } else {
-                nickNameHud.setText("Insert nickname: " + nickname);
+                nickNameHud.setText(nickNameHudAux + "Insert nickname: " + nickname);
             }
         } else if (state == ClientGameState.GameRunning) {
             Vector3f camDir = cam.getDirection().clone();
@@ -476,13 +480,21 @@ public class ClientMain extends SimpleApplication {
             if (m instanceof ConnectionRejected) {
 
                 ConnectionRejected message = (ConnectionRejected) m;
+                
+                System.out.println("Resibio");
 
-                String reason = "Connection refused: " + message.getReason();
-
-                nickNameHud.setLocalTranslation( // position
-                        settings.getWidth() / 2 - (guiFont.getLineWidth(reason)) / 2,
-                        settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize() + 10) / 2, 0);
-                nickNameHud.setText(reason);
+                final String reason = "Connection refused: " + message.getReason();
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        nickNameHud.setLocalTranslation( // position
+                            settings.getWidth() / 2 - (guiFont.getLineWidth(reason)) / 2,
+                            settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize() + 10) / 2, 0);
+                        nickNameHudAux = reason + "\n";
+                        return null;
+                    }
+                });
+                
             } else if (m instanceof NewPlayerConnected) {
                 System.out.println("A player connected");
                 final NewPlayerConnected message = (NewPlayerConnected) m;

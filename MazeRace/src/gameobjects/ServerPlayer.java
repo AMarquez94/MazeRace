@@ -22,15 +22,12 @@ public class ServerPlayer extends Node{
     //Objects
 
     private Node player;
-    //Player settings
-    public final static float JUMP_FORCE = 10f;
-    public final static float GRAVITY = 1f;
-    public final static float MOVE_SPEED = 2000f;
     //Player attributes
     private Team team;
     private Vector3f position;
     private String nickname;
     private Quaternion orientation;
+    private int health;
     
     private BetterCharacterControl control;
     private GhostControl otroControl;
@@ -41,31 +38,18 @@ public class ServerPlayer extends Node{
         this.position = position;
         this.nickname = nickname;
         this.setName(id + "");
-       
-        
-        
-
+        this.health = 100;
         // Load model
         Spatial character = app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
         character.setName(id + "");
-         DirectionalLight sun = new DirectionalLight();
-        sun.setDirection(new Vector3f(-0.1f, -0.7f, -1.0f));
-        character.addLight(sun);
         player = new Node(id + "");
         player.attachChild(character);
         this.attachChild(player); // add it to the wrapper
-//        characterControl = new BetterCharacterControl(1.5f, 6f, 1f);
         // Position player
         this.setLocalTranslation(position);
         player.move(0, 3.0f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
         orientation = this.getWorldRotation();
-        //control = new BetterCharacterControl(1.5f, 6f, 1f); // construct character. (If your character bounces, try increasing height and weight.)
-//        CapsuleCollisionShape c = new CapsuleCollisionShape(1.5f,6f,1);
-//        otroControl = new GhostControl(c);
-//        otroControl.setPhysicsLocation(position);
-//        this.addControl(otroControl); // attach to wrapper
-//        control.warp(position);
     }
 
     public Team getTeam() {
@@ -85,8 +69,6 @@ public class ServerPlayer extends Node{
 
     public void setPosition(Vector3f position) {
         this.position = position;
-//        control.warp(position);
-//        otroControl.setPhysicsLocation(position);
         this.setLocalTranslation(position);
     }
 
@@ -131,5 +113,22 @@ public class ServerPlayer extends Node{
     public void addToPhysicsSpace(BulletAppState bas) {
         bas.getPhysicsSpace().add(otroControl);
         bas.getPhysicsSpace().addAll(this);
+    }
+    
+    public int getHealth(){
+        return this.health;
+    }
+    
+    public void setHealth(int health){
+        this.health = health;
+    }
+    
+    public void addHealth(int health){
+        this.health = this.health + health;
+    }
+    
+    public boolean decreaseHealth(int health){
+        this.health = this.health - health;
+        return this.health < 0;
     }
 }

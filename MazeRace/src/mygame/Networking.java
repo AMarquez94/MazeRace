@@ -177,20 +177,22 @@ public class Networking {
     /**
      * Server -> Client Server says to the clients that the Player with index
      * "shootedPlayerId" has been shooted by another with index
-     * "shootingPlayerId"
+     * "shootingPlayerId", and its health is now "newHealth"
      */
     @Serializable
     public static class PlayerShooted extends AbstractMessage {
 
         private int shootedPlayerId;
         private int shootingPlayerId;
+        private int newHealth;
 
         public PlayerShooted() {
         }
 
-        public PlayerShooted(int shootedPlayerId, int shootingPlayerId) {
+        public PlayerShooted(int shootedPlayerId, int shootingPlayerId, int newHealth) {
             this.shootedPlayerId = shootedPlayerId;
             this.shootingPlayerId = shootingPlayerId;
+            this.newHealth = newHealth;
         }
 
         public int getShootedPlayerId() {
@@ -200,26 +202,36 @@ public class Networking {
         public int getShootingPlayerId() {
             return shootingPlayerId;
         }
+
+        public int getNewHealth() {
+            return newHealth;
+        }
     }
 
     /**
      * Server -> Clients Server says the clients that player with index
-     * deadPlayer has died
+     * deadPlayer has died because of killerPlayer
      */
     @Serializable
     public static class DeadPlayer extends AbstractMessage {
 
         private int deadPlayer;
+        private int killerPlayer;
 
         public DeadPlayer() {
         }
 
-        public DeadPlayer(int deadPlayer) {
+        public DeadPlayer(int deadPlayer, int killerPlayer) {
             this.deadPlayer = deadPlayer;
+            this.killerPlayer = killerPlayer;
         }
 
         public int getDeadPlayer() {
             return deadPlayer;
+        }
+
+        public int getKillerPlayer() {
+            return killerPlayer;
         }
     }
 

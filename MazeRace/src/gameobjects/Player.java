@@ -36,6 +36,7 @@ public class Player extends Node {
     private Team team;
     private Vector3f position;
     private String nickname;
+    private int health;
     //Used for moving
     public Vector3f walkDirection = new Vector3f(0, 0, 0);
     public float airTime = 0;
@@ -44,7 +45,7 @@ public class Player extends Node {
         this.team = team;
         this.position = position;
         this.nickname = nickname;
-        
+        this.health = 100;
         this.setName(nickname);
 
         // Load model
@@ -179,5 +180,13 @@ public class Player extends Node {
         } else if(this.hasChild(treasure)) { //deactivate
             this.detachChild(treasure);
         }
+    }
+    
+    public int getHealth(){
+        return this.health;
+    }
+    
+    public void setHealth(int health){
+        this.health = health;
     }
 }

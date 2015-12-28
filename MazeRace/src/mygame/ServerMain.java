@@ -40,6 +40,7 @@ public class ServerMain extends SimpleApplication {
     protected static ServerMain app;
     protected final static int MAX_PLAYERS = 6;
     protected final static int PICKUP_MARGIN = 5;
+    protected final static int DAMAGE_BULLET = 25;
     //GLOBAL VARIABLES
     private static Server server;
     private HostedConnection[] hostedConnections;
@@ -332,8 +333,15 @@ public class ServerMain extends SimpleApplication {
                             if(results.size() > 0){
                                 int shooted = checkShooted(id,results);
                                 if(shooted >= 0){
-                                    server.broadcast(Filters.in(hostedConnections),
-                                                new PlayerShooted(shooted, id));
+                                    boolean dead = players[shooted].decreaseHealth(DAMAGE_BULLET);
+                                    if(dead){
+                                        server.broadcast(Filters.in(hostedConnections),
+                                                new DeadPlayer(shooted, id));
+                                    }
+                                    else{
+                                        server.broadcast(Filters.in(hostedConnections),
+                                                new PlayerShooted(shooted, id, players[shooted].getHealth()));
+                                    }
                                 }
                             }
                         }

@@ -9,10 +9,13 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
+import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.BillboardControl;
+import com.jme3.scene.shape.Quad;
 import enums.Team;
 
 /**
@@ -32,6 +35,7 @@ public class Player extends Node {
     public final static float JUMP_FORCE = 10f;
     public final static float GRAVITY = 1f;
     public final static float MOVE_SPEED = 2000f;
+    public final static float WIDTH_HEALTH_BAR = 4f;
     //Player attributes
     private Team team;
     private Vector3f position;
@@ -40,6 +44,8 @@ public class Player extends Node {
     //Used for moving
     public Vector3f walkDirection = new Vector3f(0, 0, 0);
     public float airTime = 0;
+    //Healthbar
+    private Geometry healthbar;
 
     public Player(Team team, Vector3f position, String nickname, SimpleApplication app) {
         this.team = team;
@@ -72,10 +78,28 @@ public class Player extends Node {
         Node nicknameNode = new Node("Nickname");
         nicknameNode.attachChild(hoverText);
         BillboardControl bc = new BillboardControl();
-        nicknameNode.addControl(bc);
-        nicknameNode.setLocalTranslation(0, 10, 0);
         this.attachChild(nicknameNode);
+        hoverText.center();
+        nicknameNode.setLocalTranslation(0, 10.5f, 0);
+        nicknameNode.addControl(bc);
         
+        BillboardControl billboard = new BillboardControl();
+        healthbar = new Geometry("healthbar", new Quad(WIDTH_HEALTH_BAR, 0.5f));
+        Material mathb = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        healthbar.setMaterial(mathb);
+        this.attachChild(healthbar);
+        healthbar.center();
+        healthbar.move(0, 8, 0);
+        healthbar.addControl(billboard);
+        
+        if(this.team == Team.Blue){
+            hoverText.setColor(ColorRGBA.Blue);
+            mathb.setColor("Color", ColorRGBA.Blue);
+        }
+        else{
+            hoverText.setColor(ColorRGBA.Red);
+            mathb.setColor("Color", ColorRGBA.Red);
+        }
         
         // Treasure text
         BitmapText treasureText = new BitmapText(guiFont, false);
@@ -188,5 +212,6 @@ public class Player extends Node {
     
     public void setHealth(int health){
         this.health = health;
+        healthbar.setLocalScale(((float)health)/100, 1f, 1f);
     }
 }

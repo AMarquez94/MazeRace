@@ -481,8 +481,6 @@ public class ClientMain extends SimpleApplication {
 
                 ConnectionRejected message = (ConnectionRejected) m;
                 
-                System.out.println("Resibio");
-
                 final String reason = "Connection refused: " + message.getReason();
                 
                 app.enqueue(new Callable() {
@@ -559,7 +557,19 @@ public class ClientMain extends SimpleApplication {
                 });
             } else if (m instanceof PlayerShooted) {
                 final PlayerShooted message = (PlayerShooted) m;
+                
                 System.out.println("I (" + message.getShootedPlayerId() + ") have been shooted by " + message.getShootingPlayerId());
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        
+                        int idShooted = message.getShootedPlayerId();
+                        int idShooting = message.getShootingPlayerId();
+                        int newHealth = message.getNewHealth();
+                        System.out.println("new health = " + newHealth);
+                        players.get(idShooted).setHealth(newHealth);
+                        return null;
+                    }
+                });
                 //TODO decrease health points?
             } else if (m instanceof DeadPlayer) {
                 final DeadPlayer message = (DeadPlayer) m;

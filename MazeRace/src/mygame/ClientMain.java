@@ -20,8 +20,11 @@ import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
 import com.jme3.light.AmbientLight;
 import com.jme3.material.Material;
+import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.network.AbstractMessage;
 import com.jme3.network.Client;
@@ -29,11 +32,15 @@ import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
 import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
+import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.shape.Quad;
 import com.jme3.system.AppSettings;
 import com.jme3.terrain.geomipmap.TerrainQuad;
+import com.jme3.util.BufferUtils;
 import enums.ClientGameState;
 import enums.Team;
 import gameobjects.Mark;
@@ -85,6 +92,11 @@ public class ClientMain extends SimpleApplication {
     //Healthbar
     private Geometry healthbar;
     private BitmapText healthtext;
+    //ShootIndicator
+    private Node[] shootIndicator;
+    private boolean[] shooted;
+    private float transparency = 1;
+    private Material matShoot;
     
     private String nickNameHudAux = "";
 
@@ -133,6 +145,12 @@ public class ClientMain extends SimpleApplication {
         setUpLight();
         setUpKeys();
         new Maze(this).setUpWorld(rootNode, bas);
+        
+        shootIndicator = new Node[4];
+        shooted = new boolean[4];
+        for(int i = 0; i < 4; i++){
+            shootIndicator[i] = new Node();
+        }
     }
 
     private Player getPlayer() {
@@ -297,7 +315,7 @@ public class ClientMain extends SimpleApplication {
     
     private void initHealthBar() {
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        healthbar = new Geometry("healthbar", new Quad(settings.getWidth()/5, settings.getHeight()/25));
+        healthbar = new Geometry("healthbar", new Quad(128, 19));
         Material mathb = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         mathb.setColor("Color", ColorRGBA.Blue);
         if(getPlayer().getTeam() == Team.Blue){
@@ -314,13 +332,70 @@ public class ClientMain extends SimpleApplication {
         healthtext.setText("Life: 100%");
         healthtext.setLocalTranslation(20,settings.getHeight() - 20, 0);
         guiNode.attachChild(healthtext);
+    }
+    
+    private void initShootingIndicators(){
+        Mesh trapezoid = createTrapezoid();
         
-//        BitmapText ch = new BitmapText(guiFont, false);
-//        ch.setColor(getPlayer().getTeamColor());
-//        ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
-//        ch.setText("+"); // crosshairs
-//        ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
-//        guiNode.attachChild(ch);
+        matShoot = new Material(assetManager, 
+            "Common/MatDefs/Misc/Unshaded.j3md");
+        matShoot.setColor("Color", new ColorRGBA(1,0,0,1f));
+        matShoot.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        
+        Geometry geo1 = new Geometry("OurMesh", trapezoid); // using our custom mesh object
+        geo1.setLocalTranslation(settings.getWidth() / 2, 35, 0);
+        geo1.setLocalScale(40);
+        geo1.setMaterial(matShoot);
+        shootIndicator[0].attachChild(geo1);
+        
+        Geometry geo2 = geo1.clone();
+        geo2.rotate(0, 0, FastMath.PI);
+        geo2.setLocalTranslation(settings.getWidth() / 2, settings.getHeight() - 35, 0);
+        geo2.setMaterial(matShoot);
+        shootIndicator[1].attachChild(geo2);
+        
+        Geometry geo3 = geo1.clone();
+        geo3.rotate(0, 0, -FastMath.PI/2);
+        geo3.setLocalTranslation(35, settings.getHeight()/2, 0);
+        geo3.setMaterial(matShoot);
+        shootIndicator[2].attachChild(geo3); 
+        
+        Geometry geo4 = geo1.clone();
+        geo4.rotate(0, 0, FastMath.PI/2);
+        geo4.setLocalTranslation(settings.getWidth() - 35, settings.getHeight()/2, 0);
+        geo4.setMaterial(matShoot);
+        shootIndicator[3].attachChild(geo4); 
+        
+        for (int i = 0; i < 4; i++) {
+            guiNode.attachChild(shootIndicator[i]);
+            shootIndicator[i].setCullHint(CullHint.Always);
+        }
+    }
+    
+    private Mesh createTrapezoid(){
+        Mesh trapezoid = new Mesh();
+        
+        Vector3f[] vertices = new Vector3f[5];
+        vertices[0] = new Vector3f(-5f,-0.75f,0);
+        vertices[1] = new Vector3f(0,-0.75f,0);
+        vertices[2] = new Vector3f(5f,-0.75f,0);
+        vertices[3] = new Vector3f(-2.5f,0.75f,0f);
+        vertices[4] = new Vector3f(2.5f,0.75f,0f);
+        
+        Vector2f[] texCoord = new Vector2f[5];
+        texCoord[0] = new Vector2f(0,0);
+        texCoord[1] = new Vector2f(1,0);
+        texCoord[2] = new Vector2f(0,1);
+        texCoord[3] = new Vector2f(1,1);
+        
+        int[] indexes = {0,1,3 ,1,2,4, 3,1,4};
+        
+        trapezoid.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
+        trapezoid.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
+        trapezoid.setBuffer(Type.Index,    3, BufferUtils.createIntBuffer(indexes));
+        trapezoid.updateBound();
+        
+        return trapezoid;
     }
 
     private void setUpLight() {
@@ -397,6 +472,18 @@ public class ClientMain extends SimpleApplication {
             getPlayer().setPosition(player_pos);
             //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
+            
+            for(int i = 0; i < shooted.length; i++){
+                if(shooted[i]){
+                    matShoot.setColor("Color", new ColorRGBA(1,0,0,transparency));
+                    transparency = transparency - tpf/1;
+                    if(transparency<0){
+                        transparency = 1;
+                        shooted[i] = false;
+                        shootIndicator[i].setCullHint(CullHint.Always);
+                    }
+                }
+            }
 
             //send new state to server TODO: rotation
             sendMessage(new PlayerMoved(getPlayer().getPosition(),
@@ -459,6 +546,37 @@ public class ClientMain extends SimpleApplication {
         f[2] = q.getZ();
         f[3] = q.getW();
         return f;
+    }
+    
+    private void getShootDirection(int idShooting){
+        Vector3f d1 = players.get(idShooting)
+                .getPosition().subtract(getPlayer().getPosition()).normalize();
+        Vector3f d2 = cam.getDirection();
+        
+        float angle = FastMath.atan2(d1.x * d2.z - d1.z * d2.x, d1.x * d2.x + d1.z * d2.z);
+        if(angle < 0){
+            angle = angle + FastMath.PI*2;
+        }
+        
+        
+        if(angle >= Math.PI/4 && angle <= Math.PI*3/4){
+            shootIndicator[2].setCullHint(CullHint.Never);
+            shooted[2] = true;
+            
+        }
+        else if(angle > Math.PI*3/4 && angle < Math.PI*5/4){
+            shootIndicator[0].setCullHint(CullHint.Never);
+            shooted[0] = true;
+        }
+        else if(angle >= Math.PI*5/4 && angle <= Math.PI*7/4){
+            shootIndicator[3].setCullHint(CullHint.Never);
+            shooted[3] = true;
+        }
+        else{
+            shootIndicator[1].setCullHint(CullHint.Never);
+            shooted[1] = true;
+        }
+        transparency = 1;
     }
 
     public class NicknameHUDListener implements RawInputListener {
@@ -544,6 +662,7 @@ public class ClientMain extends SimpleApplication {
                             initCrossHairs();
                             //Create lifeBar in GUI
                             initHealthBar();
+                            initShootingIndicators();
                             return null;
                         }
                     });
@@ -591,18 +710,21 @@ public class ClientMain extends SimpleApplication {
             } else if (m instanceof PlayerShooted) {
                 final PlayerShooted message = (PlayerShooted) m;
                 
-                System.out.println("I (" + message.getShootedPlayerId() + ") have been shooted by " + message.getShootingPlayerId());
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         
                         int idShooted = message.getShootedPlayerId();
                         int idShooting = message.getShootingPlayerId();
                         int newHealth = message.getNewHealth();
-                        System.out.println("new health = " + newHealth);
                         players.get(idShooted).setHealth(newHealth);
                         if(idShooted == id){
+                            getShootDirection(idShooting);
+                            getPlayer().playHitAudio();
                             healthbar.setLocalScale(((float)newHealth)/100, 1, 1);
                             healthtext.setText("Life: " + newHealth + "%");
+                        }
+                        if(idShooting == id){
+                            getPlayer().playHitAudio();
                         }
                         return null;
                     }

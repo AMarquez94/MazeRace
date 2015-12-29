@@ -28,6 +28,7 @@ public class Player extends Node {
 
     private Node player, treasure;
     private AudioNode audio_gun;
+    private AudioNode audio_hit;
     private BetterCharacterControl characterControl;
     private AnimControl animationControl;
     private AnimChannel animationChannel;
@@ -71,6 +72,13 @@ public class Player extends Node {
         audio_gun.setLooping(false);
         audio_gun.setVolume(2);
         this.attachChild(audio_gun);
+        
+        // Audio hit
+        audio_hit = new AudioNode(app.getAssetManager(), "Sounds/hitsound.wav", false);
+        audio_hit.setPositional(false);
+        audio_hit.setLooping(false);
+        audio_hit.setVolume(2);
+        this.attachChild(audio_hit);
         
         BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
         if(!me){
@@ -184,6 +192,10 @@ public class Player extends Node {
 
     public void playGunAudio() {
         this.audio_gun.playInstance();
+    }
+    
+    public void playHitAudio(){
+        this.audio_hit.playInstance();
     }
 
     public void walkToPosition(Vector3f position) {

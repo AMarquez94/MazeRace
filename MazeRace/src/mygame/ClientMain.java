@@ -551,7 +551,7 @@ public class ClientMain extends SimpleApplication {
 
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        players.get(message.getPlayerID()).playGunAudio();
+                       // players.get(message.getPlayerID()).playGunAudio();
                         return null;
                     }
                 });

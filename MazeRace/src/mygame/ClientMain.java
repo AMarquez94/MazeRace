@@ -165,6 +165,7 @@ public class ClientMain extends SimpleApplication {
             client.start();
         } catch (IOException ex) {
             Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(-1);
         }
 
         //Message receiving

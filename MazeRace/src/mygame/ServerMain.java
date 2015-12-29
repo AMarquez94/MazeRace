@@ -165,8 +165,14 @@ public class ServerMain extends SimpleApplication {
         boolean find = false;
         while (i < players.length && !find) {
             if (players[i] == null) {
-                players[i] = new ServerPlayer(i, chooseTeam(i), initialPositions[i],
-                        nickname, app);
+                Team team = chooseTeam(i);
+                Vector3f position = new Vector3f();
+                if (team == Team.Blue) {
+                    position = initialPositions[i%MAX_PLAYERS/2];
+                } else if (team == Team.Red) {
+                    position = initialPositions[MAX_PLAYERS/2+i%MAX_PLAYERS/2];
+                }
+                players[i] = new ServerPlayer(i, team, position, nickname, app);
                 //players[i].addToPhysicsSpace(bas);
                 hostedConnections[i] = s;
                 connectedPlayers++;
@@ -185,11 +191,11 @@ public class ServerMain extends SimpleApplication {
             //team 1 (color?)
             initialPositions[0] = new Vector3f(0.74115396f, -100.0f, -245.33556f);
             initialPositions[1] = new Vector3f(4.69698f, -100.0f, -245.20134f);
-            initialPositions[4] = new Vector3f(8.940145f, -100.0f, -245.1395f);
+            initialPositions[2] = new Vector3f(8.940145f, -100.0f, -245.1395f);
 
             // team 2 (color?)
-            initialPositions[2] = new Vector3f(-1.7150712f, -100.0f, 241.41965f);
-            initialPositions[3] = new Vector3f(-6.002777f, -100.0f, 241.66374f);
+            initialPositions[3] = new Vector3f(-1.7150712f, -100.0f, 241.41965f);
+            initialPositions[4] = new Vector3f(-6.002777f, -100.0f, 241.66374f);
             initialPositions[5] = new Vector3f(-12.222459f, -100.0f, 242.18967f);
         } catch (Exception e) {
             System.out.println(e);
@@ -336,8 +342,8 @@ public class ServerMain extends SimpleApplication {
                                 float[] checkResult = checkShooted(id, results);
                                 int shooted = (int) checkResult[0];
                                 if (shooted >= 0) {
+                                    // if the distance to the wall is lower than the shooted player, no shooting is applied
                                     boolean check = checkWall(ray, checkResult[1]);
-                                    System.out.println(check);
                                     if (check) {
                                         boolean dead = players[shooted].decreaseHealth(DAMAGE_BULLET);
                                         if (dead) {

@@ -29,7 +29,9 @@ import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
 import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.shape.Quad;
 import com.jme3.system.AppSettings;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import enums.ClientGameState;
@@ -80,6 +82,9 @@ public class ClientMain extends SimpleApplication {
     private float counter;
     private NicknameHUDListener initialListener;
     private BitmapText nickNameHud;
+    //Healthbar
+    private Geometry healthbar;
+    private BitmapText healthtext;
     
     private String nickNameHudAux = "";
 
@@ -183,13 +188,13 @@ public class ClientMain extends SimpleApplication {
     /*
      * Adds the player to the environment.
      */
-    private void setUpCharacter(int id, Team team, Vector3f position, String nick) {
+    private void setUpCharacter(int id, Team team, Vector3f position, String nick, boolean me) {
         if (players.containsKey(id)) { //if player already exists
             return;
         }
 
         //create player and store in players map
-        Player p = new Player(team, position, nick, app);
+        Player p = new Player(team, position, nick, app, me);
         players.put(id, p);
 
         //adds the player to the game
@@ -288,6 +293,34 @@ public class ClientMain extends SimpleApplication {
         ch.setText("+"); // crosshairs
         ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
         guiNode.attachChild(ch);
+    }
+    
+    private void initHealthBar() {
+        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        healthbar = new Geometry("healthbar", new Quad(settings.getWidth()/5, settings.getHeight()/25));
+        Material mathb = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        mathb.setColor("Color", ColorRGBA.Blue);
+        if(getPlayer().getTeam() == Team.Blue){
+            mathb.setColor("Color", ColorRGBA.Blue);
+        }
+        else{
+            mathb.setColor("Color", ColorRGBA.Red);
+        }
+        healthbar.setMaterial(mathb);
+        healthbar.setLocalTranslation(20,settings.getHeight() - 40, 0);
+        guiNode.attachChild(healthbar);
+        healthtext = new BitmapText(guiFont, false);
+        healthtext.setColor(ColorRGBA.White);
+        healthtext.setText("Life: 100%");
+        healthtext.setLocalTranslation(20,settings.getHeight() - 20, 0);
+        guiNode.attachChild(healthtext);
+        
+//        BitmapText ch = new BitmapText(guiFont, false);
+//        ch.setColor(getPlayer().getTeamColor());
+//        ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
+//        ch.setText("+"); // crosshairs
+//        ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
+//        guiNode.attachChild(ch);
     }
 
     private void setUpLight() {
@@ -497,27 +530,27 @@ public class ClientMain extends SimpleApplication {
                 System.out.println("A player connected");
                 final NewPlayerConnected message = (NewPlayerConnected) m;
 
-                //Set up the character
-                app.enqueue(new Callable() {
-                    public Object call() throws Exception {
-                        setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname());
-                        return null;
-                    }
-                });
-
                 //if it is my own connection
                 if (message.getNickname().equals(nickname)) {
+                    
                     id = message.getId();
-
+                    //Set up the character
                     app.enqueue(new Callable() {
                         public Object call() throws Exception {
-                            //Remove nickname part
+                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(),true);
+                             //Remove nickname part
                             inputManager.removeRawInputListener(initialListener);
                             nickNameHud.removeFromParent();
                             initCrossHairs();
+                            //Create lifeBar in GUI
+                            initHealthBar();
                             return null;
                         }
                     });
+                }
+                
+                else{
+                    setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(),false);
                 }
             } else if (m instanceof DisconnectedPlayer) {
                 DisconnectedPlayer message = (DisconnectedPlayer) m;
@@ -567,6 +600,10 @@ public class ClientMain extends SimpleApplication {
                         int newHealth = message.getNewHealth();
                         System.out.println("new health = " + newHealth);
                         players.get(idShooted).setHealth(newHealth);
+                        if(idShooted == id){
+                            healthbar.setLocalScale(((float)newHealth)/100, 1, 1);
+                            healthtext.setText("Life: " + newHealth + "%");
+                        }
                         return null;
                     }
                 });
@@ -660,7 +697,7 @@ public class ClientMain extends SimpleApplication {
                         app.enqueue(new Callable() {
                             public Object call() throws Exception {
                                 //Set up the character. TODO does not include orientation (maybe not needed)
-                                setUpCharacter(id, teams[id], positions[id], nicknames[id]);
+                                setUpCharacter(id, teams[id], positions[id], nicknames[id],false);
                                 return null;
                             }
                         });

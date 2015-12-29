@@ -46,13 +46,15 @@ public class Player extends Node {
     public float airTime = 0;
     //Healthbar
     private Geometry healthbar;
+    private boolean me;
 
-    public Player(Team team, Vector3f position, String nickname, SimpleApplication app) {
+    public Player(Team team, Vector3f position, String nickname, SimpleApplication app, boolean me) {
         this.team = team;
         this.position = position;
         this.nickname = nickname;
         this.health = 100;
         this.setName(nickname);
+        this.me = me;
 
         // Load model
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
@@ -70,35 +72,37 @@ public class Player extends Node {
         audio_gun.setVolume(2);
         this.attachChild(audio_gun);
         
-        // Nickname
         BitmapFont guiFont = app.getAssetManager().loadFont("Interface/Fonts/Default.fnt");
-        BitmapText hoverText = new BitmapText(guiFont, false);
-        hoverText.setSize(guiFont.getCharSet().getRenderedSize() * 0.1f);
-        hoverText.setText(this.nickname + "");
-        Node nicknameNode = new Node("Nickname");
-        nicknameNode.attachChild(hoverText);
-        BillboardControl bc = new BillboardControl();
-        this.attachChild(nicknameNode);
-        hoverText.center();
-        nicknameNode.setLocalTranslation(0, 10.5f, 0);
-        nicknameNode.addControl(bc);
-        
-        BillboardControl billboard = new BillboardControl();
-        healthbar = new Geometry("healthbar", new Quad(WIDTH_HEALTH_BAR, 0.5f));
-        Material mathb = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
-        healthbar.setMaterial(mathb);
-        this.attachChild(healthbar);
-        healthbar.center();
-        healthbar.move(0, 8, 0);
-        healthbar.addControl(billboard);
-        
-        if(this.team == Team.Blue){
-            hoverText.setColor(ColorRGBA.Blue);
-            mathb.setColor("Color", ColorRGBA.Blue);
-        }
-        else{
-            hoverText.setColor(ColorRGBA.Red);
-            mathb.setColor("Color", ColorRGBA.Red);
+        if(!me){
+            // Nickname
+            BitmapText hoverText = new BitmapText(guiFont, false);
+            hoverText.setSize(guiFont.getCharSet().getRenderedSize() * 0.1f);
+            hoverText.setText(this.nickname + "");
+            Node nicknameNode = new Node("Nickname");
+            nicknameNode.attachChild(hoverText);
+            BillboardControl bc = new BillboardControl();
+            this.attachChild(nicknameNode);
+            hoverText.center();
+            nicknameNode.setLocalTranslation(0, 10.5f, 0);
+            nicknameNode.addControl(bc);
+
+            BillboardControl billboard = new BillboardControl();
+            healthbar = new Geometry("healthbar", new Quad(WIDTH_HEALTH_BAR, 0.5f));
+            Material mathb = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+            healthbar.setMaterial(mathb);
+            this.attachChild(healthbar);
+            healthbar.center();
+            healthbar.move(0, 8, 0);
+            healthbar.addControl(billboard);
+
+            if(this.team == Team.Blue){
+                hoverText.setColor(ColorRGBA.Blue);
+                mathb.setColor("Color", ColorRGBA.Blue);
+            }
+            else{
+                hoverText.setColor(ColorRGBA.Red);
+                mathb.setColor("Color", ColorRGBA.Red);
+            }
         }
         
         // Treasure text
@@ -212,6 +216,8 @@ public class Player extends Node {
     
     public void setHealth(int health){
         this.health = health;
-        healthbar.setLocalScale(((float)health)/100, 1f, 1f);
+        if(!me){
+            healthbar.setLocalScale(((float)health)/100, 1f, 1f);
+        }
     }
 }

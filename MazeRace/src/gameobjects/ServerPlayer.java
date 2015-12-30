@@ -2,10 +2,8 @@ package gameobjects;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
-import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
 import com.jme3.bullet.control.BetterCharacterControl;
 import com.jme3.bullet.control.GhostControl;
-import com.jme3.light.DirectionalLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
@@ -29,6 +27,7 @@ public class ServerPlayer extends Node{
     private Quaternion orientation;
     private int health;
     private boolean hasTreasure;
+    private boolean dead;
     
     private BetterCharacterControl control;
     private GhostControl otroControl;
@@ -52,6 +51,7 @@ public class ServerPlayer extends Node{
         player.move(0, 3.0f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
         orientation = this.getWorldRotation();
+        this.dead = false;
     }
 
     public Team getTeam() {
@@ -131,7 +131,15 @@ public class ServerPlayer extends Node{
     
     public boolean decreaseHealth(int health){
         this.health = this.health - health;
-        return this.health < 0;
+        return this.health <= 0;
+    }
+    
+    public boolean isDead(){
+        return this.dead;
+    }
+    
+    public void setDead(boolean dead){
+        this.dead = dead;
     }
     
     public boolean getHasTreasure() {

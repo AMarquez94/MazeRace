@@ -40,6 +40,7 @@ public class ServerMain extends SimpleApplication {
     protected static ServerMain app;
     protected final static int MAX_PLAYERS = 6;
     protected final static int PICKUP_MARGIN = 5;
+    protected final static int MAX_HEALTH = 100;
     protected final static int DAMAGE_BULLET = 25;
     //GLOBAL VARIABLES
     private static Server server;
@@ -112,6 +113,7 @@ public class ServerMain extends SimpleApplication {
         this.pauseOnFocus = false;
         shootables = new Node("Shootables");
         rootNode.attachChild(shootables);
+        
 
         new ServerControl(this);
     }
@@ -349,7 +351,10 @@ public class ServerMain extends SimpleApplication {
                                 int shooted = checkShooted(id, results);
                                 if (shooted >= 0) {
                                     boolean dead = players[shooted].decreaseHealth(DAMAGE_BULLET);
-                                    if (dead) {
+
+                                    if(dead){
+                                        players[shooted].setDead(true);
+
                                         server.broadcast(Filters.in(hostedConnections),
                                                 new DeadPlayer(shooted, id));
                                     } else {
@@ -380,6 +385,15 @@ public class ServerMain extends SimpleApplication {
                 server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
                 //TODO set to false for other players
+            } else if (m instanceof WantToRespawn) {
+                
+                final int id = findId(source);
+                
+                players[id].setDead(false);
+                players[id].setHealth(MAX_HEALTH);
+                players[id].setPosition(initialPositions[id]);
+                
+                server.broadcast(Filters.in(hostedConnections),  new PlayerRespawn(id,initialPositions[id]));
             }
         }
     }
@@ -454,7 +468,8 @@ public class ServerMain extends SimpleApplication {
         while (i < results.size() && !find) {
             int shooted = Integer.parseInt(results.getCollision(i)
                     .getGeometry().getParent().getName());
-            if (id != shooted) {
+
+            if(id != shooted && !players[shooted].isDead()){
                 result = shooted;
                 find = true;
             } else {

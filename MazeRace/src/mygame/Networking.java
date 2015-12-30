@@ -42,6 +42,7 @@ public class Networking {
         Serializer.registerClass(Pause.class);
         Serializer.registerClass(Resume.class);
         Serializer.registerClass(TreasureDropped.class);
+        Serializer.registerClass(WantToRespawn.class);
     }
 
     /**
@@ -232,6 +233,17 @@ public class Networking {
 
         public int getKillerPlayer() {
             return killerPlayer;
+        }
+    }
+    
+     /**
+     * Client -> Server 
+     * Client says he has dead and he wants to respawn
+     */
+    @Serializable
+    public static class WantToRespawn extends AbstractMessage {
+
+        public WantToRespawn() {
         }
     }
 

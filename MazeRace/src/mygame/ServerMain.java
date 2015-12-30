@@ -113,7 +113,7 @@ public class ServerMain extends SimpleApplication {
         this.pauseOnFocus = false;
         shootables = new Node("Shootables");
         rootNode.attachChild(shootables);
-        
+
 
         new ServerControl(this);
     }
@@ -352,11 +352,18 @@ public class ServerMain extends SimpleApplication {
                                 if (shooted >= 0) {
                                     boolean dead = players[shooted].decreaseHealth(DAMAGE_BULLET);
 
-                                    if(dead){
+                                    if (dead) {
                                         players[shooted].setDead(true);
 
                                         server.broadcast(Filters.in(hostedConnections),
                                                 new DeadPlayer(shooted, id));
+                                        
+                                        if (players[shooted].getHasTreasure()) {
+                                            treasureLocation = players[shooted].getWorldTranslation();
+                                            server.broadcast(Filters.in(hostedConnections),
+                                                    new TreasureDropped(treasureLocation));
+                                            players[shooted].setHasTreasure(false);
+                                        }
                                     } else {
                                         server.broadcast(Filters.in(hostedConnections),
                                                 new PlayerShooted(shooted, id, players[shooted].getHealth()));
@@ -386,14 +393,14 @@ public class ServerMain extends SimpleApplication {
                 players[id].setHasTreasure(true);
                 //TODO set to false for other players
             } else if (m instanceof WantToRespawn) {
-                
+
                 final int id = findId(source);
-                
+
                 players[id].setDead(false);
                 players[id].setHealth(MAX_HEALTH);
                 players[id].setPosition(initialPositions[id]);
-                
-                server.broadcast(Filters.in(hostedConnections),  new PlayerRespawn(id,initialPositions[id]));
+
+                server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
             }
         }
     }
@@ -469,7 +476,7 @@ public class ServerMain extends SimpleApplication {
             int shooted = Integer.parseInt(results.getCollision(i)
                     .getGeometry().getParent().getName());
 
-            if(id != shooted && !players[shooted].isDead()){
+            if (id != shooted && !players[shooted].isDead()) {
                 result = shooted;
                 find = true;
             } else {

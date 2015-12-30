@@ -184,6 +184,7 @@ public class ClientMain extends SimpleApplication {
         guiNode.attachChild(announcement);
 
         //Stops character movement
+        getPlayer().getAnimChannel().setAnim("stand");
         getPlayer().walkDirection.set(0, 0, 0);
         getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection);
 
@@ -844,7 +845,11 @@ public class ClientMain extends SimpleApplication {
                         //create treasure if not exists yet
                         if (treasureNode == null) {
                             treasureNode = new Treasure(app, bas);
-                            rootNode.attachChild(treasureNode);
+                        }
+                        rootNode.attachChild(treasureNode);
+                        
+                        for(Player p : players.values()) {
+                            p.setTreasureMode(false);
                         }
 
                         //put treasure in position

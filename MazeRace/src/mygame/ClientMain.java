@@ -5,6 +5,7 @@ import com.jme3.animation.AnimControl;
 import com.jme3.animation.AnimEventListener;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
@@ -97,7 +98,6 @@ public class ClientMain extends SimpleApplication {
     private boolean[] shooted;
     private float transparency = 1;
     private Material matShoot;
-    
     private String nickNameHudAux = "";
 
     public static void main(String[] args) {
@@ -114,7 +114,7 @@ public class ClientMain extends SimpleApplication {
     public void simpleInitApp() {
         state = ClientGameState.NicknameScreen;
         Networking.initialiseSerializables();
-        
+
 
         //flyCam.setEnabled(false);
         setUpNetworking();
@@ -137,7 +137,7 @@ public class ClientMain extends SimpleApplication {
 
         //Set up the environment
         bas = new BulletAppState();
-        
+
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
         bas.getPhysicsSpace().enableDebug(assetManager);
@@ -145,10 +145,10 @@ public class ClientMain extends SimpleApplication {
         setUpLight();
         setUpKeys();
         new Maze(this).setUpWorld(rootNode, bas);
-        
+
         shootIndicator = new Node[4];
         shooted = new boolean[4];
-        for(int i = 0; i < 4; i++){
+        for (int i = 0; i < 4; i++) {
             shootIndicator[i] = new Node();
         }
     }
@@ -168,9 +168,21 @@ public class ClientMain extends SimpleApplication {
     /*
      * Ends the game and announces the winners
      */
-    private void endGame(Team winner) {
+    private void endGame(final Team winner) {
         state = ClientGameState.GameStopped;
-        //TODO announce winning team
+
+        BitmapFont guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        BitmapText announcement = new BitmapText(guiFont, false);
+        announcement.setSize(guiFont.getCharSet().getRenderedSize() * 2);
+        announcement.setText(winner + " has won!");
+        announcement.setLocalTranslation(settings.getWidth() / 2 - announcement.getLineWidth() / 2, settings.getHeight() / 2 + announcement.getLineHeight() / 2, 0);
+        guiNode.attachChild(announcement);
+
+        //Stops character movement
+        getPlayer().walkDirection.set(0, 0, 0);
+        getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection);
+
+        System.out.println(winner + " has won!");
     }
 
     /*
@@ -283,9 +295,9 @@ public class ClientMain extends SimpleApplication {
         public void onAction(String name, boolean keyPressed, float tpf) {
             if (state == ClientGameState.GameRunning) {
                 if (name.equals("Mark") && !keyPressed) {
-                    sendMessage(new MarkInput(cam.getDirection(),cam.getLocation()));
+                    sendMessage(new MarkInput(cam.getDirection(), cam.getLocation()));
                 } else if (name.equals("Shoot") && !keyPressed) {
-                    sendMessage(new FireInput(cam.getDirection(),cam.getLocation()));
+                    sendMessage(new FireInput(cam.getDirection(), cam.getLocation()));
                 } else if (name.equals("PickUp") && !keyPressed) {
                     //if treasure is not picked up already
                     if (rootNode.hasChild(treasureNode)) {
@@ -312,89 +324,88 @@ public class ClientMain extends SimpleApplication {
         ch.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
         guiNode.attachChild(ch);
     }
-    
+
     private void initHealthBar() {
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         healthbar = new Geometry("healthbar", new Quad(128, 19));
         Material mathb = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         mathb.setColor("Color", ColorRGBA.Blue);
-        if(getPlayer().getTeam() == Team.Blue){
+        if (getPlayer().getTeam() == Team.Blue) {
             mathb.setColor("Color", ColorRGBA.Blue);
-        }
-        else{
+        } else {
             mathb.setColor("Color", ColorRGBA.Red);
         }
         healthbar.setMaterial(mathb);
-        healthbar.setLocalTranslation(20,settings.getHeight() - 40, 0);
+        healthbar.setLocalTranslation(20, settings.getHeight() - 40, 0);
         guiNode.attachChild(healthbar);
         healthtext = new BitmapText(guiFont, false);
         healthtext.setColor(ColorRGBA.White);
         healthtext.setText("Life: 100%");
-        healthtext.setLocalTranslation(20,settings.getHeight() - 20, 0);
+        healthtext.setLocalTranslation(20, settings.getHeight() - 20, 0);
         guiNode.attachChild(healthtext);
     }
-    
-    private void initShootingIndicators(){
+
+    private void initShootingIndicators() {
         Mesh trapezoid = createTrapezoid();
-        
-        matShoot = new Material(assetManager, 
-            "Common/MatDefs/Misc/Unshaded.j3md");
-        matShoot.setColor("Color", new ColorRGBA(1,0,0,1f));
+
+        matShoot = new Material(assetManager,
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        matShoot.setColor("Color", new ColorRGBA(1, 0, 0, 1f));
         matShoot.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-        
+
         Geometry geo1 = new Geometry("OurMesh", trapezoid); // using our custom mesh object
         geo1.setLocalTranslation(settings.getWidth() / 2, 35, 0);
         geo1.setLocalScale(40);
         geo1.setMaterial(matShoot);
         shootIndicator[0].attachChild(geo1);
-        
+
         Geometry geo2 = geo1.clone();
         geo2.rotate(0, 0, FastMath.PI);
         geo2.setLocalTranslation(settings.getWidth() / 2, settings.getHeight() - 35, 0);
         geo2.setMaterial(matShoot);
         shootIndicator[1].attachChild(geo2);
-        
+
         Geometry geo3 = geo1.clone();
-        geo3.rotate(0, 0, -FastMath.PI/2);
-        geo3.setLocalTranslation(35, settings.getHeight()/2, 0);
+        geo3.rotate(0, 0, -FastMath.PI / 2);
+        geo3.setLocalTranslation(35, settings.getHeight() / 2, 0);
         geo3.setMaterial(matShoot);
-        shootIndicator[2].attachChild(geo3); 
-        
+        shootIndicator[2].attachChild(geo3);
+
         Geometry geo4 = geo1.clone();
-        geo4.rotate(0, 0, FastMath.PI/2);
-        geo4.setLocalTranslation(settings.getWidth() - 35, settings.getHeight()/2, 0);
+        geo4.rotate(0, 0, FastMath.PI / 2);
+        geo4.setLocalTranslation(settings.getWidth() - 35, settings.getHeight() / 2, 0);
         geo4.setMaterial(matShoot);
-        shootIndicator[3].attachChild(geo4); 
-        
+        shootIndicator[3].attachChild(geo4);
+
         for (int i = 0; i < 4; i++) {
             guiNode.attachChild(shootIndicator[i]);
             shootIndicator[i].setCullHint(CullHint.Always);
         }
     }
-    
-    private Mesh createTrapezoid(){
+
+    private Mesh createTrapezoid() {
         Mesh trapezoid = new Mesh();
-        
+
         Vector3f[] vertices = new Vector3f[5];
-        vertices[0] = new Vector3f(-5f,-0.75f,0);
-        vertices[1] = new Vector3f(0,-0.75f,0);
-        vertices[2] = new Vector3f(5f,-0.75f,0);
-        vertices[3] = new Vector3f(-2.5f,0.75f,0f);
-        vertices[4] = new Vector3f(2.5f,0.75f,0f);
-        
+        vertices[0] = new Vector3f(-5f, -0.75f, 0);
+        vertices[1] = new Vector3f(0, -0.75f, 0);
+        vertices[2] = new Vector3f(5f, -0.75f, 0);
+        vertices[3] = new Vector3f(-2.5f, 0.75f, 0f);
+        vertices[4] = new Vector3f(2.5f, 0.75f, 0f);
+
         Vector2f[] texCoord = new Vector2f[5];
-        texCoord[0] = new Vector2f(0,0);
-        texCoord[1] = new Vector2f(1,0);
-        texCoord[2] = new Vector2f(0,1);
-        texCoord[3] = new Vector2f(1,1);
-        
-        int[] indexes = {0,1,3 ,1,2,4, 3,1,4};
-        
+        texCoord[0] = new Vector2f(0, 0);
+        texCoord[1] = new Vector2f(1, 0);
+        texCoord[2] = new Vector2f(0, 1);
+        texCoord[3] = new Vector2f(1, 1);
+
+        int[] indexes = {0, 1, 3, 1, 2, 4, 3, 1, 4};
+
         trapezoid.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
         trapezoid.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
-        trapezoid.setBuffer(Type.Index,    3, BufferUtils.createIntBuffer(indexes));
+        trapezoid.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indexes));
         trapezoid.updateBound();
-        
+
         return trapezoid;
     }
 
@@ -408,8 +419,8 @@ public class ClientMain extends SimpleApplication {
     @Override
     public void simpleUpdate(float tpf) {
         if (state == ClientGameState.NicknameScreen || getPlayer() == null) {
-            
-            
+
+
             /* Nickname part */
             counter += tpf;
             if (counter > 0.5f) {
@@ -472,12 +483,12 @@ public class ClientMain extends SimpleApplication {
             getPlayer().setPosition(player_pos);
             //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
-            
-            for(int i = 0; i < shooted.length; i++){
-                if(shooted[i]){
-                    matShoot.setColor("Color", new ColorRGBA(1,0,0,transparency));
-                    transparency = transparency - tpf/1;
-                    if(transparency<0){
+
+            for (int i = 0; i < shooted.length; i++) {
+                if (shooted[i]) {
+                    matShoot.setColor("Color", new ColorRGBA(1, 0, 0, transparency));
+                    transparency = transparency - tpf / 1;
+                    if (transparency < 0) {
                         transparency = 1;
                         shooted[i] = false;
                         shootIndicator[i].setCullHint(CullHint.Always);
@@ -547,32 +558,29 @@ public class ClientMain extends SimpleApplication {
         f[3] = q.getW();
         return f;
     }
-    
-    private void getShootDirection(int idShooting){
+
+    private void getShootDirection(int idShooting) {
         Vector3f d1 = players.get(idShooting)
                 .getPosition().subtract(getPlayer().getPosition()).normalize();
         Vector3f d2 = cam.getDirection();
-        
+
         float angle = FastMath.atan2(d1.x * d2.z - d1.z * d2.x, d1.x * d2.x + d1.z * d2.z);
-        if(angle < 0){
-            angle = angle + FastMath.PI*2;
+        if (angle < 0) {
+            angle = angle + FastMath.PI * 2;
         }
-        
-        
-        if(angle >= Math.PI/4 && angle <= Math.PI*3/4){
+
+
+        if (angle >= Math.PI / 4 && angle <= Math.PI * 3 / 4) {
             shootIndicator[2].setCullHint(CullHint.Never);
             shooted[2] = true;
-            
-        }
-        else if(angle > Math.PI*3/4 && angle < Math.PI*5/4){
+
+        } else if (angle > Math.PI * 3 / 4 && angle < Math.PI * 5 / 4) {
             shootIndicator[0].setCullHint(CullHint.Never);
             shooted[0] = true;
-        }
-        else if(angle >= Math.PI*5/4 && angle <= Math.PI*7/4){
+        } else if (angle >= Math.PI * 5 / 4 && angle <= Math.PI * 7 / 4) {
             shootIndicator[3].setCullHint(CullHint.Never);
             shooted[3] = true;
-        }
-        else{
+        } else {
             shootIndicator[1].setCullHint(CullHint.Never);
             shooted[1] = true;
         }
@@ -631,32 +639,32 @@ public class ClientMain extends SimpleApplication {
             if (m instanceof ConnectionRejected) {
 
                 ConnectionRejected message = (ConnectionRejected) m;
-                
+
                 final String reason = "Connection refused: " + message.getReason();
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         nickNameHud.setLocalTranslation( // position
-                            settings.getWidth() / 2 - (guiFont.getLineWidth(reason)) / 2,
-                            settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize() + 10) / 2, 0);
+                                settings.getWidth() / 2 - (guiFont.getLineWidth(reason)) / 2,
+                                settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize() + 10) / 2, 0);
                         nickNameHudAux = reason + "\n";
                         return null;
                     }
                 });
-                
+
             } else if (m instanceof NewPlayerConnected) {
                 System.out.println("A player connected");
                 final NewPlayerConnected message = (NewPlayerConnected) m;
 
                 //if it is my own connection
                 if (message.getNickname().equals(nickname)) {
-                    
+
                     id = message.getId();
                     //Set up the character
                     app.enqueue(new Callable() {
                         public Object call() throws Exception {
-                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(),true);
-                             //Remove nickname part
+                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), true);
+                            //Remove nickname part
                             inputManager.removeRawInputListener(initialListener);
                             nickNameHud.removeFromParent();
                             initCrossHairs();
@@ -666,10 +674,8 @@ public class ClientMain extends SimpleApplication {
                             return null;
                         }
                     });
-                }
-                
-                else{
-                    setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(),false);
+                } else {
+                    setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), false);
                 }
             } else if (m instanceof DisconnectedPlayer) {
                 DisconnectedPlayer message = (DisconnectedPlayer) m;
@@ -709,21 +715,21 @@ public class ClientMain extends SimpleApplication {
                 });
             } else if (m instanceof PlayerShooted) {
                 final PlayerShooted message = (PlayerShooted) m;
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        
+
                         int idShooted = message.getShootedPlayerId();
                         int idShooting = message.getShootingPlayerId();
                         int newHealth = message.getNewHealth();
                         players.get(idShooted).setHealth(newHealth);
-                        if(idShooted == id){
+                        if (idShooted == id) {
                             getShootDirection(idShooting);
                             getPlayer().playHitAudio();
-                            healthbar.setLocalScale(((float)newHealth)/100, 1, 1);
+                            healthbar.setLocalScale(((float) newHealth) / 100, 1, 1);
                             healthtext.setText("Life: " + newHealth + "%");
                         }
-                        if(idShooting == id){
+                        if (idShooting == id) {
                             getPlayer().playHitAudio();
                         }
                         return null;
@@ -769,14 +775,20 @@ public class ClientMain extends SimpleApplication {
                 TreasureDropped message = (TreasureDropped) m;
                 final Vector3f location = message.getLocation();
 
-                //create treasure if not exists yet
-                if (treasureNode == null) {
-                    treasureNode = new Treasure(app, bas);
-                    rootNode.attachChild(treasureNode);
-                }
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        //create treasure if not exists yet
+                        if (treasureNode == null) {
+                            treasureNode = new Treasure(app, bas);
+                            rootNode.attachChild(treasureNode);
+                        }
 
-                //put treasure in position
-                treasureNode.setLocalTranslation(location);
+                        //put treasure in position
+                        treasureNode.setLocalTranslation(location);
+                        return null;
+                    }
+                });
+
             } else if (m instanceof TreasurePicked) {
                 TreasurePicked message = (TreasurePicked) m;
                 final int id = message.getPlayerID();
@@ -801,7 +813,12 @@ public class ClientMain extends SimpleApplication {
                 startGame();
             } else if (m instanceof End) {
                 final End message = (End) m;
-                endGame(message.winnerTeam);
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        endGame(message.winnerTeam);
+                        return null;
+                    }
+                });
             } else if (m instanceof Pause) {
                 //not implemented yet
             } else if (m instanceof Resume) {
@@ -819,7 +836,7 @@ public class ClientMain extends SimpleApplication {
                         app.enqueue(new Callable() {
                             public Object call() throws Exception {
                                 //Set up the character. TODO does not include orientation (maybe not needed)
-                                setUpCharacter(id, teams[id], positions[id], nicknames[id],false);
+                                setUpCharacter(id, teams[id], positions[id], nicknames[id], false);
                                 return null;
                             }
                         });

@@ -28,6 +28,7 @@ public class ServerPlayer extends Node{
     private String nickname;
     private Quaternion orientation;
     private int health;
+    private boolean hasTreasure;
     
     private BetterCharacterControl control;
     private GhostControl otroControl;
@@ -39,6 +40,7 @@ public class ServerPlayer extends Node{
         this.nickname = nickname;
         this.setName(id + "");
         this.health = 100;
+        this.hasTreasure = false;
         // Load model
         Spatial character = app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
         character.setName(id + "");
@@ -130,5 +132,13 @@ public class ServerPlayer extends Node{
     public boolean decreaseHealth(int health){
         this.health = this.health - health;
         return this.health < 0;
+    }
+    
+    public boolean getHasTreasure() {
+        return this.hasTreasure;
+    }
+    
+    public void setHasTreasure(boolean hasTreasure) {
+        this.hasTreasure = hasTreasure;
     }
 }

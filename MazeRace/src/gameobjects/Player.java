@@ -113,7 +113,7 @@ public class Player extends Node {
             }
         }
         
-        // Treasure text
+        // Treasure text, but do not attach yet
         BitmapText treasureText = new BitmapText(guiFont, false);
         treasureText.setSize(guiFont.getCharSet().getRenderedSize() * 0.5f);
         treasureText.setText("Holding treasure");

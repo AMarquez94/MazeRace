@@ -252,7 +252,7 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharBackward", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_N), new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
-        inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_B)); //maybe find a better binding?
+        inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_F)); //maybe find a better binding?
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
         inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp");
@@ -291,14 +291,6 @@ public class ClientMain extends SimpleApplication {
                     getPlayer().getCharacterControl().jump();
                 }
             }
-            else if(state == ClientGameState.Dead){
-                
-                //Maybe better binding?
-                if (name.equals("CharJump")) {
-                    
-                    sendMessage(new WantToRespawn());
-                }
-            }
         }
     };
     /*
@@ -322,6 +314,13 @@ public class ClientMain extends SimpleApplication {
                             sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
                         }
                     }
+                }
+            } else if(state == ClientGameState.Dead){
+                
+                //Maybe better binding?
+                if (name.equals("Shoot") && !keyPressed) {
+                    
+                    sendMessage(new WantToRespawn());
                 }
             }
         }
@@ -619,7 +618,7 @@ public class ClientMain extends SimpleApplication {
     
     public void deadPlayerHUD(int idShooting){
         deadPlayerText.setText("You have been killed by " + players.get(idShooting).getNickname()
-                +"\n Press space to respawn");
+                +"\n Click left mouse button to respawn");
         deadPlayerText.setLocalTranslation(
                 settings.getWidth() / 2 - (deadPlayerText.getLineWidth() / 2),
                 settings.getHeight() / 2 + (deadPlayerText.getHeight() / 2), 0);

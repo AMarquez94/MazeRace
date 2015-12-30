@@ -39,6 +39,7 @@ public class Player extends Node {
     public final static float WIDTH_HEALTH_BAR = 4f;
     //Player attributes
     private Team team;
+    private Vector3f spawnPoint;
     private Vector3f position;
     private String nickname;
     private int health;
@@ -52,6 +53,7 @@ public class Player extends Node {
     public Player(Team team, Vector3f position, String nickname, SimpleApplication app, boolean me) {
         this.team = team;
         this.position = position;
+        this.spawnPoint = position;
         this.nickname = nickname;
         this.health = 100;
         this.setName(nickname);
@@ -139,6 +141,10 @@ public class Player extends Node {
         for (String c : animationControl.getAnimationNames()) {
             System.out.println(c);
         }
+        
+        if(me){
+            player.setCullHint(CullHint.Always);
+        }
     }
 
     public Team getTeam() {
@@ -159,6 +165,11 @@ public class Player extends Node {
     public void addToPhysicsSpace(BulletAppState bas) {
         bas.getPhysicsSpace().add(characterControl);
         bas.getPhysicsSpace().addAll(this);
+    }
+    
+    public void removeFromPhysicsSpace(BulletAppState bas){
+        bas.getPhysicsSpace().remove(characterControl);
+        bas.getPhysicsSpace().removeAll(this);
     }
 
     public void addAnimEventListener(AnimEventListener listener) {
@@ -231,5 +242,22 @@ public class Player extends Node {
         if(!me){
             healthbar.setLocalScale(((float)health)/100, 1f, 1f);
         }
+    }
+    
+    public void deadPlayer(){
+        this.setCullHint(CullHint.Always);
+        animationControl.setEnabled(false);
+    }
+    
+    public void playerRespawn(Vector3f position){
+        animationControl.setEnabled(true);
+        characterControl.setApplyPhysicsLocal(true);
+        this.getCharacterControl().warp(position);
+        this.health = 100;
+        if(!me){
+            this.healthbar.setLocalScale(1, 1, 1);
+            this.setCullHint(CullHint.Inherit);
+        }
+        this.setPosition(position);
     }
 }

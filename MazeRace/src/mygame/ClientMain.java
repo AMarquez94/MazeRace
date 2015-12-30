@@ -89,6 +89,11 @@ public class ClientMain extends SimpleApplication {
     private float counter;
     private NicknameHUDListener initialListener;
     private BitmapText nickNameHud;
+    private String nickNameHudAux = "";
+    //Crosshairs
+    private BitmapText ch;
+    //DeadPlayer message
+    private BitmapText deadPlayerText;
     //Healthbar
     private Geometry healthbar;
     private BitmapText healthtext;
@@ -98,7 +103,6 @@ public class ClientMain extends SimpleApplication {
     private float transparency = 1;
     private Material matShoot;
     
-    private String nickNameHudAux = "";
 
     public static void main(String[] args) {
         app = new ClientMain();
@@ -274,6 +278,12 @@ public class ClientMain extends SimpleApplication {
                     getPlayer().getCharacterControl().jump();
                 }
             }
+            else if(state == ClientGameState.Dead){
+                if (name.equals("CharJump")) {
+                    
+                    sendMessage(new WantToRespawn());
+                }
+            }
         }
     };
     /*
@@ -305,7 +315,7 @@ public class ClientMain extends SimpleApplication {
     private void initCrossHairs() {
         setDisplayStatView(false);
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        BitmapText ch = new BitmapText(guiFont, false);
+        ch = new BitmapText(guiFont, false);
         ch.setColor(getPlayer().getTeamColor());
         ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
         ch.setText("+"); // crosshairs
@@ -332,6 +342,16 @@ public class ClientMain extends SimpleApplication {
         healthtext.setText("Life: 100%");
         healthtext.setLocalTranslation(20,settings.getHeight() - 20, 0);
         guiNode.attachChild(healthtext);
+    }
+    
+    private void initDeadPlayerMessage(){
+        guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
+        deadPlayerText = new BitmapText(guiFont, false);
+        deadPlayerText.setColor(getPlayer().getTeamColor());
+        deadPlayerText.setSize(guiFont.getCharSet().getRenderedSize() * 2);
+//        deadPlayerText.setText("+"); // crosshairs
+//        deadPlayerText.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
+        guiNode.attachChild(deadPlayerText);
     }
     
     private void initShootingIndicators(){
@@ -578,6 +598,15 @@ public class ClientMain extends SimpleApplication {
         }
         transparency = 1;
     }
+    
+    public void deadPlayerHUD(int idShooting){
+        deadPlayerText.setText("You have been killed by " + players.get(idShooting).getNickname()
+                +"\n Press space to respawn");
+        deadPlayerText.setLocalTranslation(
+                settings.getWidth() / 2 - (guiFont.getLineWidth(deadPlayerText.getText())) / 2,
+                settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize()) / 2, 0);
+        ch.setText("");
+    }
 
     public class NicknameHUDListener implements RawInputListener {
 
@@ -660,6 +689,7 @@ public class ClientMain extends SimpleApplication {
                             inputManager.removeRawInputListener(initialListener);
                             nickNameHud.removeFromParent();
                             initCrossHairs();
+                            initDeadPlayerMessage();
                             //Create lifeBar in GUI
                             initHealthBar();
                             initShootingIndicators();
@@ -735,22 +765,52 @@ public class ClientMain extends SimpleApplication {
 
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
+                        
+                        int idShooted = message.getDeadPlayer();
+                        int idShooting = message.getKillerPlayer();
+                        players.get(idShooted).setHealth(0);
+                        if(idShooted == id){
+                            getShootDirection(idShooting);
+                            getPlayer().playHitAudio();
+                            healthbar.setLocalScale(0, 1, 1);
+                            healthtext.setText("Life: " + 0 + "%");
+                        }
+                        if(idShooting == id){
+                            getPlayer().playHitAudio();
+                        }
+                        players.get(idShooted).deadPlayer();
+                        players.get(idShooted).removeFromPhysicsSpace(bas);
+                        if(idShooted == id){
+                            
+                            //Set as dead
+                            deadPlayerHUD(idShooting);
+                            state = ClientGameState.Dead;
+                        }
                         //Remove dead player from the scene graph
-                        playerNode.detachChild(players.get(message.getDeadPlayer()));
                         return null;
                     }
                 });
 
             } else if (m instanceof PlayerRespawn) {
                 final PlayerRespawn message = (PlayerRespawn) m;
-                final int id = message.getPlayerRespawn();
-                final Vector3f position = message.getPosition();
-
+                
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        //move player back to its initial position (spawn point)
-                        players.get(id).setLocalTranslation(position);
-                        playerNode.attachChild(players.get(id));
+                        
+                        int idRespawn = message.getPlayerRespawn();
+                        Vector3f position = message.getPosition();
+                        
+                        players.get(idRespawn).playerRespawn(position);
+                        players.get(idRespawn).addToPhysicsSpace(bas);
+                        if(idRespawn == id){
+                            
+                            /* I am respawning */
+                            deadPlayerText.setText("");
+                            ch.setText("+");
+                            healthbar.setLocalScale(1, 1, 1);
+                            healthtext.setText("Life: 100%");
+                            state = ClientGameState.GameRunning;
+                        }
                         return null;
                     }
                 });
@@ -825,7 +885,7 @@ public class ClientMain extends SimpleApplication {
                         });
                     }
                 }
-            }
+            } 
         }
     }
 }

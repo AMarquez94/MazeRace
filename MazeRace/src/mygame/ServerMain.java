@@ -86,7 +86,7 @@ public class ServerMain extends SimpleApplication {
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
         bas.getPhysicsSpace().enableDebug(assetManager);
-        
+
         treasureLocation = new Vector3f(0f, -100f, 0f); //initial location of the treasure
 
         terrain = new Maze(this).setUpWorld(rootNode, bas);
@@ -128,6 +128,13 @@ public class ServerMain extends SimpleApplication {
             } else {
                 periodic_threshold++;
             }
+        } else if (state == ServerGameState.GameRunning) {
+            for (ServerPlayer p : players) {
+                if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
+                    server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
+                    ServerControl.changeServerState(ServerGameState.GameStopped);
+                }
+            }
         }
     }
 
@@ -138,6 +145,14 @@ public class ServerMain extends SimpleApplication {
 
     public static Vector3f getInitialPosition(int id) {
         return initialPositions[id];
+    }
+
+    public static Vector3f getSpawnZonePoint(Team team) {
+        if (team == Team.Red) {
+            return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
+        } else {
+            return new Vector3f(8.813507f, -100.00002f, 250.53908f);
+        }
     }
 
     @Override
@@ -167,7 +182,7 @@ public class ServerMain extends SimpleApplication {
         boolean find = false;
         while (i < players.length && !find) {
             if (players[i] == null) {
-                players[i] = new ServerPlayer(i,chooseTeam(i), initialPositions[i],
+                players[i] = new ServerPlayer(i, chooseTeam(i), initialPositions[i],
                         nickname, app);
                 //players[i].addToPhysicsSpace(bas);
                 hostedConnections[i] = s;
@@ -249,7 +264,7 @@ public class ServerMain extends SimpleApplication {
                                         return null;
                                     }
                                 });
-                                
+
                             } else {
                                 server.broadcast(Filters.equalTo(source),
                                         new ConnectionRejected("Nickname already in use"));
@@ -277,7 +292,7 @@ public class ServerMain extends SimpleApplication {
                 final Vector3f position = message.getPosition();
                 final float[] rotation = message.getRotation();
                 final Vector3f orientation = message.getOrientation();
-                
+
 
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
@@ -293,7 +308,7 @@ public class ServerMain extends SimpleApplication {
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
-                
+
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();
 
@@ -316,11 +331,11 @@ public class ServerMain extends SimpleApplication {
                     }
                 });
             } else if (m instanceof FireInput) {
-                
+
                 FireInput message = (FireInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
-                
+
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();
 
@@ -330,18 +345,19 @@ public class ServerMain extends SimpleApplication {
                             CollisionResults results = new CollisionResults();
                             //Must be changed by the coordinates and direction of the character
                             Ray ray = new Ray(position, direction);
-                            
+
                             shootables.collideWith(ray, results);
-                            if(results.size() > 0){
-                                int shooted = checkShooted(id,results);
-                                if(shooted >= 0){
+                            if (results.size() > 0) {
+                                int shooted = checkShooted(id, results);
+                                if (shooted >= 0) {
                                     boolean dead = players[shooted].decreaseHealth(DAMAGE_BULLET);
+
                                     if(dead){
                                         players[shooted].setDead(true);
+
                                         server.broadcast(Filters.in(hostedConnections),
                                                 new DeadPlayer(shooted, id));
-                                    }
-                                    else{
+                                    } else {
                                         server.broadcast(Filters.in(hostedConnections),
                                                 new PlayerShooted(shooted, id, players[shooted].getHealth()));
                                     }
@@ -362,11 +378,13 @@ public class ServerMain extends SimpleApplication {
                 PickTreasureInput message = (PickTreasureInput) m;
                 Vector3f location = message.getLocation();
                 Vector3f direction = message.getDirection();
-                
-                
+                int id = findId(source);
+
 
                 //temporarily always allow pickup TODO
                 server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
+                players[id].setHasTreasure(true);
+                //TODO set to false for other players
             } else if (m instanceof WantToRespawn) {
                 
                 final int id = findId(source);
@@ -389,7 +407,6 @@ public class ServerMain extends SimpleApplication {
             if (newState == ServerGameState.GameRunning) {
                 server.broadcast(new Start());
             } else if (newState == ServerGameState.GameStopped) {
-                server.broadcast(new End(Team.Blue)); //TODO should be passed the winning team
             }
 
             state = newState;
@@ -439,23 +456,25 @@ public class ServerMain extends SimpleApplication {
             return -1;
         }
     }
-    
+
     /**
-     * Returns the index of the first player that has been shooted. (-1 if didn't
-     * shoot anything)
+     * Returns the index of the first player that has been shooted. (-1 if
+     * didn't shoot anything)
      */
-    private int checkShooted(int id, CollisionResults results){
+    private int checkShooted(int id, CollisionResults results) {
         int result = -1;
         int i = 0;
         boolean find = false;
-        while(i<results.size() && !find){
+        while (i < results.size() && !find) {
             int shooted = Integer.parseInt(results.getCollision(i)
                     .getGeometry().getParent().getName());
+
             if(id != shooted && !players[shooted].isDead()){
                 result = shooted;
                 find = true;
+            } else {
+                i++;
             }
-            else i++;
         }
         return result;
     }

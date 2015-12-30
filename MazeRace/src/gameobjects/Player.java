@@ -93,7 +93,7 @@ public class Player extends Node {
             BillboardControl bc = new BillboardControl();
             this.attachChild(nicknameNode);
             hoverText.center();
-            nicknameNode.setLocalTranslation(0, 10.5f, 0);
+            nicknameNode.setLocalTranslation(guiFont.getLineWidth(nickname)*-0.05f, 10.5f, 0);
             nicknameNode.addControl(bc);
 
             BillboardControl billboard = new BillboardControl();

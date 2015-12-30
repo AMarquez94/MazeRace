@@ -33,7 +33,6 @@ import com.jme3.network.Message;
 import com.jme3.network.MessageListener;
 import com.jme3.network.Network;
 import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
@@ -455,77 +454,83 @@ public class ClientMain extends SimpleApplication {
                 }
             } else {
                 nickNameHud.setText(nickNameHudAux + "Insert nickname: " + nickname);
-            }
-        } else if (state == ClientGameState.GameRunning) {
-            Vector3f camDir = cam.getDirection().clone();
-            Vector3f camLeft = cam.getLeft().clone();
-            camDir.y = 0;
-            camLeft.y = 0;
-            camDir.normalizeLocal();
-            camLeft.normalizeLocal();
-            getPlayer().walkDirection.set(0, 0, 0);
-
-            if (!getPlayer().getCharacterControl().isOnGround()) {
-                getPlayer().airTime += tpf;
-            } else {
-                getPlayer().airTime = 0;
-            }
-
-            if (left) {
-                getPlayer().walkDirection.addLocal(camLeft);
-            }
-            if (right) {
-                getPlayer().walkDirection.addLocal(camLeft.negate());
-            }
-            if (up) {
-                getPlayer().walkDirection.addLocal(camDir);
-            }
-            if (down) {
-                getPlayer().walkDirection.addLocal(camDir.negate());
-            }
-
-            //change animation
-            if (getPlayer().walkDirection.lengthSquared() == 0) { //Use lengthSquared() (No need for an extra sqrt())
-                if (!"stand".equals(getPlayer().getAnimChannel().getAnimationName())) {
-                    getPlayer().getAnimChannel().setAnim("stand", 1f);
+                if(!nickNameHudAux.equals("")){
+                nickNameHud.setLocalTranslation( // position
+                            settings.getWidth() / 2 - (nickNameHud.getLineWidth()) / 2,
+                            settings.getHeight() / 2 + (nickNameHud.getLineHeight() / 2), 0);
                 }
-            } else {
-                getPlayer().getCharacterControl().setViewDirection(getPlayer().walkDirection);
-                if (getPlayer().airTime > .5f) {
+            }
+        } else if (state == ClientGameState.GameRunning || state == ClientGameState.Dead) {
+            if(state == ClientGameState.GameRunning){
+                Vector3f camDir = cam.getDirection().clone();
+                Vector3f camLeft = cam.getLeft().clone();
+                camDir.y = 0;
+                camLeft.y = 0;
+                camDir.normalizeLocal();
+                camLeft.normalizeLocal();
+                getPlayer().walkDirection.set(0, 0, 0);
+
+                if (!getPlayer().getCharacterControl().isOnGround()) {
+                    getPlayer().airTime += tpf;
+                } else {
+                    getPlayer().airTime = 0;
+                }
+
+                if (left) {
+                    getPlayer().walkDirection.addLocal(camLeft);
+                }
+                if (right) {
+                    getPlayer().walkDirection.addLocal(camLeft.negate());
+                }
+                if (up) {
+                    getPlayer().walkDirection.addLocal(camDir);
+                }
+                if (down) {
+                    getPlayer().walkDirection.addLocal(camDir.negate());
+                }
+
+                //change animation
+                if (getPlayer().walkDirection.lengthSquared() == 0) { //Use lengthSquared() (No need for an extra sqrt())
                     if (!"stand".equals(getPlayer().getAnimChannel().getAnimationName())) {
-                        getPlayer().getAnimChannel().setAnim("stand");
+                        getPlayer().getAnimChannel().setAnim("stand", 1f);
                     }
-                } else if (!"Walk".equals(getPlayer().getAnimChannel().getAnimationName())) {
-                    getPlayer().getAnimChannel().setAnim("Walk", 0.7f);
+                } else {
+                    getPlayer().getCharacterControl().setViewDirection(getPlayer().walkDirection);
+                    if (getPlayer().airTime > .5f) {
+                        if (!"stand".equals(getPlayer().getAnimChannel().getAnimationName())) {
+                            getPlayer().getAnimChannel().setAnim("stand");
+                        }
+                    } else if (!"Walk".equals(getPlayer().getAnimChannel().getAnimationName())) {
+                        getPlayer().getAnimChannel().setAnim("Walk", 0.7f);
+                    }
                 }
+
+                getPlayer().walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
+
+                getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection); // THIS IS WHERE THE WALKING HAPPENS
+
+                Vector3f player_pos = getPlayer().getWorldTranslation();
+                getPlayer().setPosition(player_pos);
+                //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
+                cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
+
+                //send new state to server TODO: rotation
+                sendMessage(new PlayerMoved(getPlayer().getPosition(),
+                        quaternionToArray(getPlayer().getWorldRotation()),
+                        getPlayer().getCharacterControl().getViewDirection(),
+                        getPlayer().getAnimChannel().getAnimationName()));
             }
-
-            getPlayer().walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
-
-            getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection); // THIS IS WHERE THE WALKING HAPPENS
-
-            Vector3f player_pos = getPlayer().getWorldTranslation();
-            getPlayer().setPosition(player_pos);
-            //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
-            cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
-
-            for (int i = 0; i < shooted.length; i++) {
-                if (shooted[i]) {
-                    matShoot.setColor("Color", new ColorRGBA(1, 0, 0, transparency));
-                    transparency = transparency - tpf / 1;
-                    if (transparency < 0) {
+            for(int i = 0; i < shooted.length; i++){
+                if(shooted[i]){
+                    matShoot.setColor("Color", new ColorRGBA(1,0,0,transparency));
+                    transparency = transparency - tpf/1;
+                    if(transparency<0){
                         transparency = 1;
                         shooted[i] = false;
                         shootIndicator[i].setCullHint(CullHint.Always);
                     }
                 }
             }
-
-            //send new state to server TODO: rotation
-            sendMessage(new PlayerMoved(getPlayer().getPosition(),
-                    quaternionToArray(getPlayer().getWorldRotation()),
-                    getPlayer().getCharacterControl().getViewDirection(),
-                    getPlayer().getAnimChannel().getAnimationName()));
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
@@ -616,8 +621,8 @@ public class ClientMain extends SimpleApplication {
         deadPlayerText.setText("You have been killed by " + players.get(idShooting).getNickname()
                 +"\n Press space to respawn");
         deadPlayerText.setLocalTranslation(
-                settings.getWidth() / 2 - (guiFont.getLineWidth(deadPlayerText.getText())) / 2,
-                settings.getHeight() / 2 + (guiFont.getCharSet().getRenderedSize()) / 2, 0);
+                settings.getWidth() / 2 - (deadPlayerText.getLineWidth() / 2),
+                settings.getHeight() / 2 + (deadPlayerText.getHeight() / 2), 0);
         ch.setText("");
     }
 
@@ -655,9 +660,11 @@ public class ClientMain extends SimpleApplication {
                         nickname = nickname.substring(0, nickname.length() - 1);
                     }
                     nickNameHud.setText("Insert nickname: " + nickname + "|");
+                    
                 } else {
                     nickname = nickname + evt.getKeyChar();
                     nickNameHud.setText("Insert nickname: " + nickname + "|");
+                   
                 }
             }
         }

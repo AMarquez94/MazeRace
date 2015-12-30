@@ -279,6 +279,8 @@ public class ClientMain extends SimpleApplication {
                 }
             }
             else if(state == ClientGameState.Dead){
+                
+                //Maybe better binding?
                 if (name.equals("CharJump")) {
                     
                     sendMessage(new WantToRespawn());

@@ -891,8 +891,10 @@ public class ClientMain extends SimpleApplication {
                     message.setText(chatString + "|");
                     
                 } else {
-                    chatString = chatString + evt.getKeyChar();
-                    message.setText(chatString + "|");
+                    if(chatString.length()<60){
+                        chatString = chatString + evt.getKeyChar();
+                        message.setText(chatString + "|");
+                    }
                    
                 }
             }

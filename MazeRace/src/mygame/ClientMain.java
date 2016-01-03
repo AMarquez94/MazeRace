@@ -103,7 +103,6 @@ public class ClientMain extends SimpleApplication {
     private Material matShoot;
     private String nickNameHudAux = "";
 
-
     public static void main(String[] args) {
         app = new ClientMain();
 
@@ -315,14 +314,14 @@ public class ClientMain extends SimpleApplication {
                             sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
                         }
                     }
-                } else if(name.equals("Pos") && !keyPressed) {
+                } else if (name.equals("Pos") && !keyPressed) {
                     System.out.println(getPlayer().getWorldTranslation());
                 }
-            } else if(state == ClientGameState.Dead){
-                
+            } else if (state == ClientGameState.Dead) {
+
                 //Maybe better binding?
                 if (name.equals("Shoot") && !keyPressed) {
-                    
+
                     sendMessage(new WantToRespawn());
                 }
             }
@@ -360,8 +359,7 @@ public class ClientMain extends SimpleApplication {
         guiNode.attachChild(healthtext);
     }
 
-    
-    private void initDeadPlayerMessage(){
+    private void initDeadPlayerMessage() {
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         deadPlayerText = new BitmapText(guiFont, false);
         deadPlayerText.setColor(getPlayer().getTeamColor());
@@ -370,8 +368,8 @@ public class ClientMain extends SimpleApplication {
 //        deadPlayerText.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
         guiNode.attachChild(deadPlayerText);
     }
-    
-    private void initShootingIndicators(){
+
+    private void initShootingIndicators() {
         Mesh trapezoid = createTrapezoid();
 
         matShoot = new Material(assetManager,
@@ -456,14 +454,14 @@ public class ClientMain extends SimpleApplication {
                 }
             } else {
                 nickNameHud.setText(nickNameHudAux + "Insert nickname: " + nickname);
-                if(!nickNameHudAux.equals("")){
-                nickNameHud.setLocalTranslation( // position
+                if (!nickNameHudAux.equals("")) {
+                    nickNameHud.setLocalTranslation( // position
                             settings.getWidth() / 2 - (nickNameHud.getLineWidth()) / 2,
                             settings.getHeight() / 2 + (nickNameHud.getLineHeight() / 2), 0);
                 }
             }
         } else if (state == ClientGameState.GameRunning || state == ClientGameState.Dead) {
-            if(state == ClientGameState.GameRunning){
+            if (state == ClientGameState.GameRunning) {
                 Vector3f camDir = cam.getDirection().clone();
                 Vector3f camLeft = cam.getLeft().clone();
                 camDir.y = 0;
@@ -522,11 +520,11 @@ public class ClientMain extends SimpleApplication {
                         getPlayer().getCharacterControl().getViewDirection(),
                         getPlayer().getAnimChannel().getAnimationName()));
             }
-            for(int i = 0; i < shooted.length; i++){
-                if(shooted[i]){
-                    matShoot.setColor("Color", new ColorRGBA(1,0,0,transparency));
-                    transparency = transparency - tpf/1;
-                    if(transparency<0){
+            for (int i = 0; i < shooted.length; i++) {
+                if (shooted[i]) {
+                    matShoot.setColor("Color", new ColorRGBA(1, 0, 0, transparency));
+                    transparency = transparency - tpf / 1;
+                    if (transparency < 0) {
                         transparency = 1;
                         shooted[i] = false;
                         shootIndicator[i].setCullHint(CullHint.Always);
@@ -556,21 +554,40 @@ public class ClientMain extends SimpleApplication {
      */
     private class Sender implements Runnable {
 
+        //Algorithm settings
+        private final long TIMEOUT = 300; //timeout in milliseconds
+        private final int QUORUM = 3; //quorum in amount of messages
+
         public Sender() {
         }
 
         public void run() {
-            while (true) {
-                try {
+            long timer; //declare timer
+            Aggregation message; //declare aggregation packet
+            
+            boolean timeout; //for debug. for printing send reason
 
-                    //Send all messages in queue
-                    while (messageQueue.size() > 0) {
-                        client.send(messageQueue.poll());
+            while (QUORUM > 0) { //loop forever
+                if (messageQueue.size() > 0) { //wait until update is available
+                    timer = System.currentTimeMillis(); //set timer
+                    message = new Aggregation(); //create an empty packet
+                    timeout = false; //for debug
+
+                    quorum_loop:
+                    while (messageQueue.size() < QUORUM) { //while quorum is not reached
+                        if (System.currentTimeMillis() - timer > TIMEOUT) { //check for timeout
+                            timeout = true;
+                            break quorum_loop;                       
+                        }
+                        // else wait for more updates
                     }
-
-                    Thread.sleep((long) 1 * 30);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
+                    
+                    message.setMessages(messageQueue); //add messages to packet
+                    messageQueue.clear(); //empty queue
+                    client.send(message); //send packet
+                    
+                    //for debug
+                    if(timeout) System.out.println("TIMEOUT"); else System.out.println("QUORUM");
                 }
             }
         }
@@ -618,10 +635,10 @@ public class ClientMain extends SimpleApplication {
         }
         transparency = 1;
     }
-    
-    public void deadPlayerHUD(int idShooting){
+
+    public void deadPlayerHUD(int idShooting) {
         deadPlayerText.setText("You have been killed by " + players.get(idShooting).getNickname()
-                +"\n Click left mouse button to respawn");
+                + "\n Click left mouse button to respawn");
         deadPlayerText.setLocalTranslation(
                 settings.getWidth() / 2 - (deadPlayerText.getLineWidth() / 2),
                 settings.getHeight() / 2 + (deadPlayerText.getHeight() / 2), 0);
@@ -662,11 +679,11 @@ public class ClientMain extends SimpleApplication {
                         nickname = nickname.substring(0, nickname.length() - 1);
                     }
                     nickNameHud.setText("Insert nickname: " + nickname + "|");
-                    
+
                 } else {
                     nickname = nickname + evt.getKeyChar();
                     nickNameHud.setText("Insert nickname: " + nickname + "|");
-                   
+
                 }
             }
         }
@@ -785,23 +802,23 @@ public class ClientMain extends SimpleApplication {
 
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        
+
                         int idShooted = message.getDeadPlayer();
                         int idShooting = message.getKillerPlayer();
                         players.get(idShooted).setHealth(0);
-                        if(idShooted == id){
+                        if (idShooted == id) {
                             getShootDirection(idShooting);
                             getPlayer().playHitAudio();
                             healthbar.setLocalScale(0, 1, 1);
                             healthtext.setText("Life: " + 0 + "%");
                         }
-                        if(idShooting == id){
+                        if (idShooting == id) {
                             getPlayer().playHitAudio();
                         }
                         players.get(idShooted).deadPlayer();
                         players.get(idShooted).removeFromPhysicsSpace(bas);
-                        if(idShooted == id){
-                            
+                        if (idShooted == id) {
+
                             //Set as dead
                             deadPlayerHUD(idShooting);
                             state = ClientGameState.Dead;
@@ -813,17 +830,17 @@ public class ClientMain extends SimpleApplication {
 
             } else if (m instanceof PlayerRespawn) {
                 final PlayerRespawn message = (PlayerRespawn) m;
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        
+
                         int idRespawn = message.getPlayerRespawn();
                         Vector3f position = message.getPosition();
-                        
+
                         players.get(idRespawn).playerRespawn(position);
                         players.get(idRespawn).addToPhysicsSpace(bas);
-                        if(idRespawn == id){
-                            
+                        if (idRespawn == id) {
+
                             /* I am respawning */
                             deadPlayerText.setText("");
                             ch.setText("+");
@@ -856,8 +873,8 @@ public class ClientMain extends SimpleApplication {
                             treasureNode = new Treasure(app, bas);
                         }
                         rootNode.attachChild(treasureNode);
-                        
-                        for(Player p : players.values()) {
+
+                        for (Player p : players.values()) {
                             p.setTreasureMode(false);
                         }
 
@@ -920,7 +937,7 @@ public class ClientMain extends SimpleApplication {
                         });
                     }
                 }
-            } 
+            }
         }
     }
 }

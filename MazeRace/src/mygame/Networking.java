@@ -9,6 +9,9 @@ import com.jme3.network.AbstractMessage;
 import com.jme3.network.serializing.Serializable;
 import com.jme3.network.serializing.Serializer;
 import enums.Team;
+import java.util.ArrayList;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  *
@@ -43,6 +46,33 @@ public class Networking {
         Serializer.registerClass(Resume.class);
         Serializer.registerClass(TreasureDropped.class);
         Serializer.registerClass(WantToRespawn.class);
+    }
+
+    /**
+     * Special aggregation packet Used in packet aggregation algorithms
+     */
+    @Serializable
+    public static class Aggregation extends AbstractMessage {
+        public LinkedBlockingQueue<AbstractMessage> messages; //messages
+
+        /*public Aggregation() {
+        }*/
+
+        public Aggregation() {
+            messages = new LinkedBlockingQueue<AbstractMessage>();
+        }
+
+        public void setMessages(LinkedBlockingQueue<AbstractMessage> m) {
+            messages = m;
+        }
+        
+        public LinkedBlockingQueue<AbstractMessage> getMessages() {
+            return messages;
+        }
+
+        public int getSize() {
+            return messages.size();
+        }
     }
 
     /**
@@ -127,19 +157,19 @@ public class Networking {
     }
 
     /**
-     * Client -> Server Client informs the Server that he wants to shoot and 
-     * the direction he was aiming
+     * Client -> Server Client informs the Server that he wants to shoot and the
+     * direction he was aiming
      */
     @Serializable
     public static class FireInput extends AbstractMessage {
 
-        private Vector3f direction; 
+        private Vector3f direction;
         private Vector3f position;
-       
+
         public FireInput() {
         }
-        
-        public FireInput(Vector3f direction, Vector3f position){
+
+        public FireInput(Vector3f direction, Vector3f position) {
             this.direction = direction;
             this.position = position;
         }
@@ -147,7 +177,7 @@ public class Networking {
         public Vector3f getDirection() {
             return direction;
         }
-        
+
         public Vector3f getPosition() {
             return position;
         }
@@ -235,10 +265,9 @@ public class Networking {
             return killerPlayer;
         }
     }
-    
-     /**
-     * Client -> Server 
-     * Client says he has dead and he wants to respawn
+
+    /**
+     * Client -> Server Client says he has dead and he wants to respawn
      */
     @Serializable
     public static class WantToRespawn extends AbstractMessage {
@@ -283,40 +312,40 @@ public class Networking {
 
         private Vector3f location;
         private Vector3f direction;
-        
+
         public PickTreasureInput() {
         }
-        
+
         public PickTreasureInput(Vector3f location, Vector3f direction) {
             this.location = location;
             this.direction = direction;
         }
-        
+
         public Vector3f getLocation() {
             return location;
         }
-        
+
         public Vector3f getDirection() {
             return direction;
         }
     }
-    
+
     /**
-     * Server -> Clients Server says where the treasure is dropped
-     * Also used when initializing the treasure
+     * Server -> Clients Server says where the treasure is dropped Also used
+     * when initializing the treasure
      */
     @Serializable
     public static class TreasureDropped extends AbstractMessage {
+
         private Vector3f location;
-        
+
         public TreasureDropped() {
-            
         }
-        
+
         public TreasureDropped(Vector3f location) {
             this.location = location;
         }
-        
+
         public Vector3f getLocation() {
             return this.location;
         }
@@ -416,8 +445,9 @@ public class Networking {
 
     /**
      * Server -> Client Server says the other clients that the player with ID
-     * "playerID" is in position "position", with rotation "rotation", orientation
-     * (where the player looks) "orientation", and performing the animation "animation"
+     * "playerID" is in position "position", with rotation "rotation",
+     * orientation (where the player looks) "orientation", and performing the
+     * animation "animation"
      */
     @Serializable
     public static class MovingPlayers extends AbstractMessage {
@@ -501,11 +531,11 @@ public class Networking {
 
         private Vector3f direction;
         private Vector3f position;
-        
+
         public MarkInput() {
         }
-        
-        public MarkInput(Vector3f direction, Vector3f position){
+
+        public MarkInput(Vector3f direction, Vector3f position) {
             this.direction = direction;
             this.position = position;
         }
@@ -513,28 +543,26 @@ public class Networking {
         public Vector3f getDirection() {
             return direction;
         }
-        
+
         public Vector3f getPosition() {
             return position;
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Server says to the clients that a new mark with the colour of the team
-     * has been put in position "position"
+     * Server -> Clients Server says to the clients that a new mark with the
+     * colour of the team has been put in position "position"
      */
     @Serializable
     public static class PutMark extends AbstractMessage {
-        
+
         private Team team;
         private Vector3f position;
-        
-        public PutMark(){
-            
+
+        public PutMark() {
         }
-        
-        public PutMark(Team team, Vector3f position){
+
+        public PutMark(Team team, Vector3f position) {
             this.team = team;
             this.position = position;
         }
@@ -546,7 +574,6 @@ public class Networking {
         public Vector3f getPosition() {
             return position;
         }
-        
     }
 
     /**
@@ -569,18 +596,17 @@ public class Networking {
         public Resume() {
         }
     }
-    
+
     /**
-     * Server -> Clients
-     * Sends to all players the positions, orientations, nicknames and teams of 
-     * the connected players.
+     * Server -> Clients Sends to all players the positions, orientations,
+     * nicknames and teams of the connected players.
      */
     @Serializable
     public static class Prepare extends AbstractMessage {
 
         private Vector3f[] positions;
         private float[][] orientations;
-        private String[] nicknames; 
+        private String[] nicknames;
         private Team[] teams;
 
         public Prepare() {
@@ -608,6 +634,5 @@ public class Networking {
         public Team[] getTeams() {
             return teams;
         }
-        
     }
 }

@@ -360,6 +360,8 @@ public class ServerMain extends SimpleApplication {
                                         
                                         if (players[shooted].getHasTreasure()) {
                                             treasureLocation = players[shooted].getWorldTranslation();
+                                            treasureLocation.setY(-100f); // to prevent floating treasure
+                                            
                                             server.broadcast(Filters.in(hostedConnections),
                                                     new TreasureDropped(treasureLocation));
                                             players[shooted].setHasTreasure(false);

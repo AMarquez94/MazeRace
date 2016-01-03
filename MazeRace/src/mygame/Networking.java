@@ -18,8 +18,12 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class Networking {
 
-    public static final int PORT = 6000;
-    public static final String HOST = "192.168.1.2";
+    public static final int PORT_LOGIN = 6000;
+    public static final String HOST_LOGIN = "192.168.1.2";
+    public static final int PORT_BLUE = 7000;
+    public static final String HOST_BLUE = "192.168.1.2";
+    public static final int PORT_RED = 8000;
+    public static final String HOST_RED = "192.168.1.2";
 
     public static void initialiseSerializables() {
         Serializer.registerClass(Aggregation.class);

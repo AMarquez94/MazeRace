@@ -78,7 +78,7 @@ public class ServerMain extends SimpleApplication {
         Networking.initialiseSerializables();
 
         try {
-            server = Network.createServer(Networking.PORT);
+            server = Network.createServer(Networking.PORT_LOGIN);
             server.start();
 
         } catch (IOException ex) {

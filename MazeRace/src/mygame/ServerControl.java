@@ -29,7 +29,7 @@ public class ServerControl extends JFrame {
         panel.setLayout(new FlowLayout());
 
         stateLabel = new JLabel();
-        setStateLabel(ServerMain.getGameState());
+        setStateLabel(LoginServer.getGameState());
         panel.add(stateLabel);
 
         for (final ServerGameState state : ServerGameState.values()) {
@@ -55,7 +55,7 @@ public class ServerControl extends JFrame {
     public static void changeServerState(final ServerGameState state) {
         server.enqueue(new Callable<Void>() {
             public Void call() throws Exception {
-                ServerMain.changeGameState(state);
+                LoginServer.changeGameState(state);
                 return null;
             }
         });

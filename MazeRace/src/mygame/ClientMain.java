@@ -200,7 +200,7 @@ public class ClientMain extends SimpleApplication {
     private void setUpNetworking() {
         //Start connection
         try {
-            client = Network.connectToServer(Networking.HOST, Networking.PORT);
+            client = Network.connectToServer(Networking.HOST_LOGIN, Networking.PORT_LOGIN);
             client.start();
         } catch (IOException ex) {
             Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);

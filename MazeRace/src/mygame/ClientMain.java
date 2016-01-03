@@ -556,7 +556,7 @@ public class ClientMain extends SimpleApplication {
 
         //Algorithm settings
         private final long TIMEOUT = 300; //timeout in milliseconds
-        private final int QUORUM = 3; //quorum in amount of messages
+        private final int QUORUM = 4; //quorum in amount of messages
 
         public Sender() {
         }
@@ -587,7 +587,7 @@ public class ClientMain extends SimpleApplication {
                     client.send(message); //send packet
                     
                     //for debug
-                    if(timeout) System.out.println("TIMEOUT"); else System.out.println("QUORUM");
+                    if(timeout) System.out.println("TIMEOUT amount of messages: " + message.getSize()); else System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/"+ TIMEOUT);
                 }
             }
         }

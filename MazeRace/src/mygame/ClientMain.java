@@ -569,21 +569,21 @@ public class ClientMain extends SimpleApplication {
 
             while (QUORUM > 0) { //loop forever
                 if (messageQueue.size() > 0) { //wait until update is available
-                    timer = System.currentTimeMillis(); //set timer
                     message = new Aggregation(); //create an empty packet
+                    message.addMessage(messageQueue.poll()); //add update to packet
+                    timer = System.currentTimeMillis(); //set timer
                     timeout = false; //for debug
 
                     quorum_loop:
-                    while (messageQueue.size() < QUORUM) { //while quorum is not reached
+                    while (message.getSize() < QUORUM) { //while quorum is not reached
                         if (System.currentTimeMillis() - timer > TIMEOUT) { //check for timeout
                             timeout = true;
                             break quorum_loop;                       
+                        } else if(messageQueue.size() > 0) { // else wait for more updates
+                            message.addMessage(messageQueue.poll()); //add update to packet
                         }
-                        // else wait for more updates
                     }
                     
-                    message.setMessages(messageQueue); //add messages to packet
-                    messageQueue.clear(); //empty queue
                     client.send(message); //send packet
                     
                     //for debug

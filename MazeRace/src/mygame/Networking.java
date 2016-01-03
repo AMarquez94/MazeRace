@@ -10,7 +10,6 @@ import com.jme3.network.serializing.Serializable;
 import com.jme3.network.serializing.Serializer;
 import enums.Team;
 import java.util.ArrayList;
-import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -23,6 +22,7 @@ public class Networking {
     public static final String HOST = "127.0.0.1";
 
     public static void initialiseSerializables() {
+        Serializer.registerClass(Aggregation.class);
         Serializer.registerClass(Alive.class);
         Serializer.registerClass(Connect.class);
         Serializer.registerClass(ConnectionRejected.class);
@@ -53,20 +53,22 @@ public class Networking {
      */
     @Serializable
     public static class Aggregation extends AbstractMessage {
-        public LinkedBlockingQueue<AbstractMessage> messages; //messages
 
-        /*public Aggregation() {
-        }*/
+        private ArrayList<AbstractMessage> messages; //messages
 
         public Aggregation() {
-            messages = new LinkedBlockingQueue<AbstractMessage>();
+            messages = new ArrayList<AbstractMessage>();
         }
 
-        public void setMessages(LinkedBlockingQueue<AbstractMessage> m) {
-            messages = m;
+        public void addMessage(AbstractMessage m) {
+            messages.add(m);
         }
-        
-        public LinkedBlockingQueue<AbstractMessage> getMessages() {
+
+        public void addMessages(LinkedBlockingQueue<AbstractMessage> m) {
+            messages.addAll(m);
+        }
+
+        public ArrayList<AbstractMessage> getMessages() {
             return messages;
         }
 

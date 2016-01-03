@@ -118,7 +118,7 @@ public class ServerMain extends SimpleApplication {
         rootNode.attachChild(shootables);
 
 
-        new ServerControl(this);
+        new ServerControlLogin(this);
     }
 
     @Override
@@ -135,7 +135,7 @@ public class ServerMain extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
                     server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
-                    ServerControl.changeServerState(ServerGameState.GameStopped);
+                    ServerControlLogin.changeServerState(ServerGameState.GameStopped);
                 }
             }
         }

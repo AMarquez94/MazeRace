@@ -9,6 +9,7 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.jme3.network.AbstractMessage;
+import com.jme3.network.Client;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
@@ -25,7 +26,6 @@ import gameobjects.ServerPlayer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
@@ -59,6 +59,8 @@ public class RedServer extends SimpleApplication {
     private float[] timeouts;
     private static Vector3f[] initialPositions;
     private float periodic_threshold = 0; //temporary
+    private static Client clientLoginServer;
+    private static Client clientBlueServer;
     //game state
     private static ServerGameState state;
     private Node shootables;
@@ -118,7 +120,7 @@ public class RedServer extends SimpleApplication {
         rootNode.attachChild(shootables);
 
 
-        new ServerControl(this);
+        new ServerControlRed(this);
     }
 
     @Override
@@ -135,7 +137,7 @@ public class RedServer extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
                     server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
-                    ServerControl.changeServerState(ServerGameState.GameStopped);
+                    ServerControlLogin.changeServerState(ServerGameState.GameStopped);
                 }
             }
         }
@@ -247,8 +249,7 @@ public class RedServer extends SimpleApplication {
         public void messageReceived(final HostedConnection source, final Message m) {
             if (m instanceof Aggregation) {
                 actionAggregation(source, m);
-            } 
-            //Below this is legacy. Server should only receive aggregation packages.
+            } //Below this is legacy. Server should only receive aggregation packages.
             else if (m instanceof Connect) {
                 actionConnect(source, m);
             } else if (m instanceof PlayerMoved) {
@@ -550,5 +551,29 @@ public class RedServer extends SimpleApplication {
         }
         return result;
     }
-    
+
+    protected static void connect() {
+        try {
+            System.out.println("RedServer: Try to connect clients");
+            clientLoginServer = Network.connectToServer(Networking.HOST_LOGIN, Networking.PORT_LOGIN);
+            clientLoginServer.start();
+            clientBlueServer = Network.connectToServer(Networking.HOST_LOGIN, Networking.PORT_BLUE);
+            clientBlueServer.start();
+            System.out.println("RedServer: Clients connected");
+        } catch (IOException ex) {
+            Logger.getLogger(RedServer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        clientLoginServer.addMessageListener(new LoginServerListener());
+        clientLoginServer.send(new LoginConnected("red"));
+    }
+
+    private static class LoginServerListener implements MessageListener<Client> {
+
+        public void messageReceived(Client source, Message m) {
+            if (m instanceof HeartBeat) {
+                System.out.println("RedServer: HeartBeat from LS");
+            }
+        }
+    }
 }

@@ -32,7 +32,7 @@ import maze.Maze;
 import mygame.Networking.*;
 
 /**
- * 
+ *
  *
  * @author nve
  */
@@ -59,6 +59,10 @@ public class LoginServer extends SimpleApplication {
     private float[] timeouts;
     private static Vector3f[] initialPositions;
     private float periodic_threshold = 0; //temporary
+    private boolean redServerConnected;
+    private boolean blueServerConnected;
+    private HostedConnection redServer;
+    private HostedConnection blueServer;
     //game state
     private static ServerGameState state;
     private Node shootables;
@@ -111,13 +115,15 @@ public class LoginServer extends SimpleApplication {
             timeouts[i] = TIMEOUT;
         }
 
+        blueServerConnected = false;
+        redServerConnected = false;
         state = ServerGameState.GameStopped;
         cam.setLocation(new Vector3f(0.74115396f, -70.0f, -150.33556f));
         this.pauseOnFocus = false;
         shootables = new Node("Shootables");
         rootNode.attachChild(shootables);
 
-        new ServerControl(this);
+        new ServerControlLogin(this);
     }
 
     @Override
@@ -134,11 +140,19 @@ public class LoginServer extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
                     server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
-                    ServerControl.changeServerState(ServerGameState.GameStopped);
+                    ServerControlLogin.changeServerState(ServerGameState.GameStopped);
                 }
             }
         }
+        tempCounter += tpf;
+        if (tempCounter > 5 && redServerConnected && blueServerConnected) {
+            tempCounter = 0;
+            redServer.send(new HeartBeat());
+            blueServer.send(new HeartBeat());
+
+        }
     }
+    float tempCounter = 0;
 
     @Override
     public void simpleRender(RenderManager rm) {
@@ -246,8 +260,7 @@ public class LoginServer extends SimpleApplication {
         public void messageReceived(final HostedConnection source, final Message m) {
             if (m instanceof Aggregation) {
                 actionAggregation(source, m);
-            } 
-            //Below this is legacy. Server should only receive aggregation packages.
+            } //Below this is legacy. Server should only receive aggregation packages.
             else if (m instanceof Connect) {
                 actionConnect(source, m);
             } else if (m instanceof PlayerMoved) {
@@ -260,6 +273,8 @@ public class LoginServer extends SimpleApplication {
                 actionPickTreasureInput(source, m);
             } else if (m instanceof WantToRespawn) {
                 actionWantToRespawn(source, m);
+            } else if (m instanceof LoginConnected) {
+                actionLoginConnected(source, m);
             }
         }
 
@@ -467,6 +482,19 @@ public class LoginServer extends SimpleApplication {
 
             server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
         }
+
+        private void actionLoginConnected(final HostedConnection source, final Message m) {
+            LoginConnected message = (LoginConnected) m;
+            if (message.getOrigin().equals("red")) {
+                redServerConnected = true;
+                redServer = source;
+                System.out.println("LoginServer: RedServer connected");
+            } else if (message.getOrigin().equals("blue")) {
+                blueServerConnected = true;
+                blueServer = source;
+                System.out.println("LoginServer: BlueServer connected");
+            }
+        }
     }
 
     protected static ServerGameState getGameState() {
@@ -549,5 +577,4 @@ public class LoginServer extends SimpleApplication {
         }
         return result;
     }
-    
 }

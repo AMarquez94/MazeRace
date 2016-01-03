@@ -50,6 +50,8 @@ public class Networking {
         Serializer.registerClass(Resume.class);
         Serializer.registerClass(TreasureDropped.class);
         Serializer.registerClass(WantToRespawn.class);
+        Serializer.registerClass(LoginConnected.class);
+        Serializer.registerClass(HeartBeat.class);
     }
 
     /**
@@ -640,5 +642,30 @@ public class Networking {
         public Team[] getTeams() {
             return teams;
         }
+    }
+
+    @Serializable
+    public static class LoginConnected extends AbstractMessage {
+
+        private String origin;
+
+        public LoginConnected() {
+        }
+
+        public LoginConnected(String origin) {
+            this.origin = origin;
+        }
+
+        public String getOrigin() {
+            return origin;
+        }
+    }
+    
+    @Serializable
+    public static class HeartBeat extends AbstractMessage {
+
+        public HeartBeat() {
+        }
+        
     }
 }

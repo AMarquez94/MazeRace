@@ -15,12 +15,12 @@ import javax.swing.JPanel;
  * Panel to control the server's game state.
  * 
  */
-public class ServerControl extends JFrame {
+public class ServerControlLogin extends JFrame {
 
     private static JLabel stateLabel;
     private static SimpleApplication server;
 
-    public ServerControl(SimpleApplication serverApp) {
+    public ServerControlLogin(SimpleApplication serverApp) {
         super();
         
         server = serverApp;

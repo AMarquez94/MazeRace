@@ -8,6 +8,7 @@ import com.jme3.collision.CollisionResults;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
+import com.jme3.network.AbstractMessage;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
@@ -22,7 +23,9 @@ import enums.ServerGameState;
 import enums.Team;
 import gameobjects.ServerPlayer;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
@@ -241,8 +244,52 @@ public class ServerMain extends SimpleApplication {
 
     private class MessageHandler implements MessageListener<HostedConnection> {
 
-        public void messageReceived(final HostedConnection source, Message m) {
+        public void messageReceived(final HostedConnection source, final Message m) {
+            if (m instanceof Aggregation) {
+                actionAggregation(source, m);
+            } 
+            //Below this is legacy. Server should only receive aggregation packages.
+            else if (m instanceof Connect) {
+                actionConnect(source, m);
+            } else if (m instanceof PlayerMoved) {
+                actionPlayerMoved(source, m);
+            } else if (m instanceof MarkInput) {
+                actionMarkInput(source, m);
+            } else if (m instanceof FireInput) {
+                actionFireInput(source, m);
+            } else if (m instanceof PickTreasureInput) {
+                actionPickTreasureInput(source, m);
+            } else if (m instanceof WantToRespawn) {
+                actionWantToRespawn(source, m);
+            }
+        }
 
+        private void actionAggregation(final HostedConnection source, final Message m) {
+            final Aggregation aggregation = (Aggregation) m;
+            //get messages
+            ArrayList<AbstractMessage> messages = aggregation.getMessages();
+
+            //process messages
+            for (final AbstractMessage message : messages) {
+                if (message != null) {
+                    if (message instanceof Connect) {
+                        actionConnect(source, message);
+                    } else if (message instanceof PlayerMoved) {
+                        actionPlayerMoved(source, message);
+                    } else if (message instanceof MarkInput) {
+                        actionMarkInput(source, message);
+                    } else if (message instanceof FireInput) {
+                        actionFireInput(source, message);
+                    } else if (message instanceof PickTreasureInput) {
+                        actionPickTreasureInput(source, message);
+                    } else if (message instanceof WantToRespawn) {
+                        actionWantToRespawn(source, message);
+                    }
+                }
+            }
+        }
+
+        private void actionConnect(final HostedConnection source, final Message m) {
             if (m instanceof Connect) {
                 Connect message = (Connect) m;
                 final String nickname = message.getNickname();
@@ -281,7 +328,11 @@ public class ServerMain extends SimpleApplication {
                     server.broadcast(Filters.equalTo(source),
                             new ConnectionRejected("Game has already started"));
                 }
-            } else if (m instanceof PlayerMoved) {
+            }
+        }
+
+        private void actionPlayerMoved(final HostedConnection source, final Message m) {
+            if (m instanceof PlayerMoved) {
 
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
@@ -303,8 +354,11 @@ public class ServerMain extends SimpleApplication {
                         return null;
                     }
                 });
-            } else if (m instanceof MarkInput) {
+            }
+        }
 
+        private void actionMarkInput(final HostedConnection source, final Message m) {
+            if (m instanceof MarkInput) {
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
@@ -330,7 +384,11 @@ public class ServerMain extends SimpleApplication {
                         return null;
                     }
                 });
-            } else if (m instanceof FireInput) {
+            }
+        }
+
+        private void actionFireInput(final HostedConnection source, final Message m) {
+            if (m instanceof FireInput) {
 
                 FireInput message = (FireInput) m;
                 final int id = findId(source);
@@ -357,11 +415,11 @@ public class ServerMain extends SimpleApplication {
 
                                         server.broadcast(Filters.in(hostedConnections),
                                                 new DeadPlayer(shooted, id));
-                                        
+
                                         if (players[shooted].getHasTreasure()) {
                                             treasureLocation = players[shooted].getWorldTranslation();
                                             treasureLocation.setY(-100f); // to prevent floating treasure
-                                            
+
                                             server.broadcast(Filters.in(hostedConnections),
                                                     new TreasureDropped(treasureLocation));
                                             players[shooted].setHasTreasure(false);
@@ -383,7 +441,11 @@ public class ServerMain extends SimpleApplication {
 
                 //send message to tell clients that shot is fired
                 server.broadcast(new Firing(id));
-            } else if (m instanceof PickTreasureInput) {
+            }
+        }
+
+        private void actionPickTreasureInput(final HostedConnection source, final Message m) {
+            if (m instanceof PickTreasureInput) {
                 PickTreasureInput message = (PickTreasureInput) m;
                 Vector3f location = message.getLocation();
                 Vector3f direction = message.getDirection();
@@ -394,16 +456,17 @@ public class ServerMain extends SimpleApplication {
                 server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
                 //TODO set to false for other players
-            } else if (m instanceof WantToRespawn) {
-
-                final int id = findId(source);
-
-                players[id].setDead(false);
-                players[id].setHealth(MAX_HEALTH);
-                players[id].setPosition(initialPositions[id]);
-
-                server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
             }
+        }
+
+        private void actionWantToRespawn(final HostedConnection source, final Message m) {
+            final int id = findId(source);
+
+            players[id].setDead(false);
+            players[id].setHealth(MAX_HEALTH);
+            players[id].setPosition(initialPositions[id]);
+
+            server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
         }
     }
 
@@ -487,4 +550,5 @@ public class ServerMain extends SimpleApplication {
         }
         return result;
     }
+    
 }

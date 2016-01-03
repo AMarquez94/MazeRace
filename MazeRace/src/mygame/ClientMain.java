@@ -253,9 +253,10 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("CharJump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("Shoot", new KeyTrigger(KeyInput.KEY_N), new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
         inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_F)); //maybe find a better binding?
+        inputManager.addMapping("Pos", new KeyTrigger(KeyInput.KEY_P)); //click to get position. debugging functionality
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
-        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp");
+        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp", "Pos");
     }
     /*
      * Handles player movement actions.
@@ -314,6 +315,8 @@ public class ClientMain extends SimpleApplication {
                             sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
                         }
                     }
+                } else if(name.equals("Pos") && !keyPressed) {
+                    System.out.println(getPlayer().getWorldTranslation());
                 }
             } else if(state == ClientGameState.Dead){
                 

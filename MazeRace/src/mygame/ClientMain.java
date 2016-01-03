@@ -108,6 +108,7 @@ public class ClientMain extends SimpleApplication {
     private final int HEIGHT = 25;
     private final int WIDTH = 600;
     private final int TEXT_HEIGHT = 25;
+    private final float CHAT_SECONDS = 5f;
     //Chat variables
     private Geometry[] chatBackground;
     private BitmapText[] chat;
@@ -115,6 +116,8 @@ public class ClientMain extends SimpleApplication {
     private Geometry messageBackground;
     private BitmapText message;
     private ChatListener chatListener;
+    private boolean chatEnabled = false;
+    private float chatTimeout = CHAT_SECONDS;
 
     public static void main(String[] args) {
         app = new ClientMain();
@@ -330,7 +333,6 @@ public class ClientMain extends SimpleApplication {
                 } else if (name.equals("Pos") && !keyPressed) {
                     System.out.println(getPlayer().getWorldTranslation());
                 } else if(name.equals("Chat") && !keyPressed){
-                    System.out.println("Enter pressed");
                     message.setText("");
                     chatString = "";
                     counter = 0;
@@ -349,7 +351,7 @@ public class ClientMain extends SimpleApplication {
             } else if(state == ClientGameState.Chat){
                 if (name.equals("Chat") && !keyPressed) {
                     state = ClientGameState.GameRunning;
-                    sendMessage(new sendMessage(chatString));
+                    sendMessage(new SendMessage(chatString));
                     inputManager.removeRawInputListener(chatListener);
                     app.enqueue(new Callable() {
                         public Object call() throws Exception {
@@ -557,6 +559,20 @@ public class ClientMain extends SimpleApplication {
                         getPlayer().getCharacterControl().getViewDirection(),
                         getPlayer().getAnimChannel().getAnimationName()));
                 
+                if(chatEnabled){
+                    chatTimeout = chatTimeout - tpf;
+                    if(chatTimeout < 0){
+                        chatEnabled = false;
+                        chatTimeout = CHAT_SECONDS;
+                        for(int i = 0; i < chat.length; i++){
+                            if(!chat[i].getText().equals("")){
+                                chat[i].setText("");
+                                chatBackground[i].setCullHint(CullHint.Always);
+                            }
+                        }
+                    }
+                }
+                
                 
             }
             for (int i = 0; i < shooted.length; i++) {
@@ -754,6 +770,51 @@ public class ClientMain extends SimpleApplication {
         guiNode.attachChild(messageBackground);
         guiNode.attachChild(message);
     }
+    
+    public void putMessage(int senderId, String message){
+        
+        boolean free = false;
+        int i = 0;
+        while(i < chat.length && !free){
+            if(!chat[i].getText().equals("")){
+                i++;
+            }
+            else{
+                free = true;
+            }
+        }
+        
+        if(free){
+            
+            /* There is space in the chat queue */
+            if(i == 0){
+                
+                /* First message */
+                chatBackground[i].setCullHint(CullHint.Inherit);
+                chat[i].setText("(" + players.get(senderId).getNickname() + "): " + message);
+            }
+            
+            else{
+                
+                for(int j = i; j > 0; j--){
+                    chatBackground[j].setCullHint(CullHint.Inherit);
+                    chat[j].setText(chat[j-1].getText());
+                }
+                chat[0].setText("(" + players.get(senderId).getNickname() + "): " + message);
+            }
+        } else{
+            
+            /* There is no space in the chat queue -> We delete the oldest */
+            for(int j = chat.length-1; j > 0; j--){
+                chatBackground[j].setCullHint(CullHint.Inherit);
+                chat[j].setText(chat[j-1].getText());
+            }
+            chat[0].setText("(" + players.get(senderId).getNickname() + "): " + message);
+        }
+        
+        chatEnabled = true;
+        chatTimeout = CHAT_SECONDS;
+    }
 
     public class NicknameHUDListener implements RawInputListener {
 
@@ -886,7 +947,12 @@ public class ClientMain extends SimpleApplication {
                         }
                     });
                 } else {
-                    setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), false);
+                    app.enqueue(new Callable() {
+                        public Object call() throws Exception {
+                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), false);
+                            return null;
+                        }
+                    });
                 }
             } else if (m instanceof DisconnectedPlayer) {
                 DisconnectedPlayer message = (DisconnectedPlayer) m;
@@ -1087,6 +1153,20 @@ public class ClientMain extends SimpleApplication {
                         });
                     }
                 }
+            } else if (m instanceof BroadcastMessage){
+                
+                final BroadcastMessage message = (BroadcastMessage) m;
+                
+                final int senderId = message.getId();
+                final String sentMessage = message.getMessage();
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        
+                        putMessage(senderId,sentMessage);
+                        return null;
+                    }
+                });
             }
         }
     }

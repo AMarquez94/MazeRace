@@ -48,9 +48,10 @@ public class ServerMain extends SimpleApplication {
     //GLOBAL VARIABLES
     private static Server server;
     private HostedConnection[] hostedConnections;
+    private ArrayList<HostedConnection> redPlayersCon;
+    private ArrayList<HostedConnection> bluePlayersCon;
     private BulletAppState bas;
     private ServerPlayer[] players;
-    private String[] nicknames;
     private int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
@@ -105,6 +106,8 @@ public class ServerMain extends SimpleApplication {
 //            nicknames[i] = "";
 //        }
         hostedConnections = new HostedConnection[MAX_PLAYERS];
+        redPlayersCon = new ArrayList<HostedConnection>();
+        bluePlayersCon = new ArrayList<HostedConnection>();
 
         timeouts = new float[MAX_PLAYERS];
         for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -187,8 +190,13 @@ public class ServerMain extends SimpleApplication {
             if (players[i] == null) {
                 players[i] = new ServerPlayer(i, chooseTeam(i), initialPositions[i],
                         nickname, app);
-                //players[i].addToPhysicsSpace(bas);
                 hostedConnections[i] = s;
+                if(players[i].getTeam() == Team.Blue){
+                    bluePlayersCon.add(s);
+                }
+                else{
+                    redPlayersCon.add(s);
+                }
                 connectedPlayers++;
                 shootables.attachChild(players[i]);
                 find = true;
@@ -284,6 +292,8 @@ public class ServerMain extends SimpleApplication {
                         actionPickTreasureInput(source, message);
                     } else if (message instanceof WantToRespawn) {
                         actionWantToRespawn(source, message);
+                    } else if (message instanceof SendMessage) {
+                        actionSendMessage(source, message);
                     }
                 }
             }
@@ -467,6 +477,21 @@ public class ServerMain extends SimpleApplication {
             players[id].setPosition(initialPositions[id]);
 
             server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
+        }
+        
+        private void actionSendMessage(final HostedConnection source, final Message m){
+            if(m instanceof SendMessage){
+                
+                SendMessage message = (SendMessage) m;
+                final int id = findId(source);
+                
+                if(players[id].getTeam() == Team.Blue){
+                    server.broadcast(Filters.in(bluePlayersCon), new BroadcastMessage(id, message.getMessage()));
+                }
+                else{
+                    server.broadcast(Filters.in(redPlayersCon), new BroadcastMessage(id, message.getMessage()));
+                }
+            }
         }
     }
 

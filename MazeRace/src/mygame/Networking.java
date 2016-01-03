@@ -46,7 +46,8 @@ public class Networking {
         Serializer.registerClass(Resume.class);
         Serializer.registerClass(TreasureDropped.class);
         Serializer.registerClass(WantToRespawn.class);
-        Serializer.registerClass(sendMessage.class);
+        Serializer.registerClass(SendMessage.class);
+        Serializer.registerClass(BroadcastMessage.class);
     }
 
     /**
@@ -644,19 +645,47 @@ public class Networking {
      * Client sends a message to the team chat
      */
     @Serializable
-    public static class sendMessage extends AbstractMessage {
+    public static class SendMessage extends AbstractMessage {
 
         private String message;
         
-        public sendMessage() {
+        public SendMessage() {
         }
         
-        public sendMessage(String message){
+        public SendMessage(String message){
             this.message = message;
         }
 
         public String getMessage() {
             return message;
+        }
+    }
+    
+    /**
+     * Server -> Client
+     * Server sends to the clients of the player's team with id "id" a message
+     * sent by him
+     */
+    @Serializable
+    public static class BroadcastMessage extends AbstractMessage {
+
+        private int id;
+        private String message;
+        
+        public BroadcastMessage() {
+        }
+        
+        public BroadcastMessage(int id, String message){
+            this.id = id;
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public int getId() {
+            return id;
         }
     }
 }

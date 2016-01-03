@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Networking {
 
     public static final int PORT = 6000;
-    public static final String HOST = "127.0.0.1";
+    public static final String HOST = "192.168.1.2";
 
     public static void initialiseSerializables() {
         Serializer.registerClass(Aggregation.class);

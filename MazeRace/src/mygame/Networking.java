@@ -46,6 +46,7 @@ public class Networking {
         Serializer.registerClass(Resume.class);
         Serializer.registerClass(TreasureDropped.class);
         Serializer.registerClass(WantToRespawn.class);
+        Serializer.registerClass(sendMessage.class);
     }
 
     /**
@@ -635,6 +636,27 @@ public class Networking {
 
         public Team[] getTeams() {
             return teams;
+        }
+    }
+    
+    /**
+     * Client -> Server
+     * Client sends a message to the team chat
+     */
+    @Serializable
+    public static class sendMessage extends AbstractMessage {
+
+        private String message;
+        
+        public sendMessage() {
+        }
+        
+        public sendMessage(String message){
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
         }
     }
 }

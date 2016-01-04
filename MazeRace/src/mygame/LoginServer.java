@@ -320,7 +320,7 @@ public class LoginServer extends SimpleApplication {
                                         nicknameToId.put(nickname, idNew);
                                         System.out.println("Send message");
                                         blueServer.send(new NewConnection(nickname, idNew));
-                                        server.broadcast(Filters.equalTo(blueServer), new NewConnection(nickname, idNew));
+                                        redServer.send(new NewConnection(nickname, idNew));
                                         final Team newTeam = chooseTeam(idNew);
 //                                        final Team newTeam = Team.Blue;
                                         Timer t = new Timer();

@@ -292,7 +292,6 @@ public class RedServer extends SimpleApplication {
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         //Set up the character. TODO does not include orientation (maybe not needed)
-                        System.out.println(nickname);
                         int idNew = nicknameToId.get(nickname);
 //                        int idNew = 0;
                         connectPlayer(nickname, source, idNew);
@@ -550,12 +549,10 @@ public class RedServer extends SimpleApplication {
             if (m instanceof HeartBeat) {
                 System.out.println("BlueServer: HeartBeat from LS");
             } else if (m instanceof NewConnection) {
-                System.out.println("Got message");
                 NewConnection message = (NewConnection) m;
                 final String nickname = message.getNickname();
                 final int id = message.getId();
                 nicknameToId.put(nickname, id);
-                System.out.println("down " + nicknameToId.size());
             } else if (m instanceof Start) {
                 server.broadcast(new Start());
             }

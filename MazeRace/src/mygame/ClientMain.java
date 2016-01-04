@@ -118,6 +118,8 @@ public class ClientMain extends SimpleApplication {
     private ChatListener chatListener;
     private boolean chatEnabled = false;
     private float chatTimeout = CHAT_SECONDS;
+    //Useful variables
+    private Quaternion tmpQuat;
 
     public static void main(String[] args) {
         app = new ClientMain();
@@ -169,6 +171,8 @@ public class ClientMain extends SimpleApplication {
         for (int i = 0; i < 4; i++) {
             shootIndicator[i] = new Node();
         }
+        
+        tmpQuat = new Quaternion();
     }
 
     private Player getPlayer() {
@@ -334,7 +338,8 @@ public class ClientMain extends SimpleApplication {
                         }
                     }
                 } else if (name.equals("Pos") && !keyPressed) {
-                    System.out.println(getPlayer().getWorldTranslation());
+                    //System.out.println(getPlayer().getWorldTranslation());
+                    System.out.println(cam.getDirection());
                 } else if(name.equals("Chat") && !keyPressed){
                     message.setText("");
                     chatString = "";
@@ -547,6 +552,28 @@ public class ClientMain extends SimpleApplication {
                     }
                 }
 
+                /* This is used to limit the updown of the camera */
+                
+                float[] angles=new float[3];
+
+                cam.getRotation().toAngles(angles);
+
+                //check the x rotation
+
+                if(angles[0] >= FastMath.HALF_PI - 0.1f){
+
+                    angles[0]=FastMath.HALF_PI - 0.1f;
+
+                    cam.setRotation(tmpQuat.fromAngles(angles));
+
+                }else if(angles[0] <= -FastMath.HALF_PI + 0.1f){
+
+                    angles[0]=-FastMath.HALF_PI + 0.1f;
+
+                    cam.setRotation(tmpQuat.fromAngles(angles));
+
+                }
+                
                 getPlayer().walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
 
                 getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection); // THIS IS WHERE THE WALKING HAPPENS
@@ -556,7 +583,16 @@ public class ClientMain extends SimpleApplication {
                 getPlayer().setPosition(player_pos);
                 //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
                 cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
-
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
                 //send new state to server TODO: rotation
                 sendMessage(new PlayerMoved(getPlayer().getPosition(),
                         quaternionToArray(getPlayer().getWorldRotation()),
@@ -683,7 +719,7 @@ public class ClientMain extends SimpleApplication {
                     client.send(message); //send packet
                     
                     //for debug
-                    if(timeout) System.out.println("TIMEOUT amount of messages: " + message.getSize()); else System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/"+ TIMEOUT);
+                   // if(timeout) System.out.println("TIMEOUT amount of messages: " + message.getSize()); else System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/"+ TIMEOUT);
                 }
             }
         }

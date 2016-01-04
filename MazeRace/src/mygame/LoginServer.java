@@ -24,6 +24,9 @@ import enums.Team;
 import gameobjects.ServerPlayer;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -63,6 +66,7 @@ public class LoginServer extends SimpleApplication {
     private boolean blueServerConnected;
     private HostedConnection redServer;
     private HostedConnection blueServer;
+    private HashMap<String, Integer> nicknameToId;
     //game state
     private static ServerGameState state;
     private Node shootables;
@@ -115,6 +119,7 @@ public class LoginServer extends SimpleApplication {
             timeouts[i] = TIMEOUT;
         }
 
+        nicknameToId = new HashMap<String, Integer>();
         blueServerConnected = false;
         redServerConnected = false;
         state = ServerGameState.GameStopped;
@@ -147,8 +152,8 @@ public class LoginServer extends SimpleApplication {
         tempCounter += tpf;
         if (tempCounter > 5 && redServerConnected && blueServerConnected) {
             tempCounter = 0;
-            redServer.send(new HeartBeat());
-            blueServer.send(new HeartBeat());
+//            redServer.send(new HeartBeat());
+//            blueServer.send(new HeartBeat());
 
         }
     }
@@ -193,17 +198,13 @@ public class LoginServer extends SimpleApplication {
     /*
      * Connects a player and returns its id
      */
-    private int connectPlayer(String nickname, HostedConnection s) {
+    private int connectPlayer(HostedConnection s) {
         int i = 0;
         boolean find = false;
         while (i < players.length && !find) {
             if (players[i] == null) {
-                players[i] = new ServerPlayer(i, chooseTeam(i), initialPositions[i],
-                        nickname, app);
-                //players[i].addToPhysicsSpace(bas);
                 hostedConnections[i] = s;
                 connectedPlayers++;
-                shootables.attachChild(players[i]);
                 find = true;
             } else {
                 i++;
@@ -315,13 +316,25 @@ public class LoginServer extends SimpleApplication {
                                 app.enqueue(new Callable() {
                                     public Object call() throws Exception {
                                         //Set up the character. TODO does not include orientation (maybe not needed)
-                                        int idNew = connectPlayer(nickname, source);
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                new NewPlayerConnected(idNew, players[idNew].getNickname(),
-                                                players[idNew].getTeam(), players[idNew].getPosition()));
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                packPrepareMessage());
-                                        server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                                        int idNew = connectPlayer(source);
+                                        nicknameToId.put(nickname, idNew);
+                                        System.out.println("Send message");
+                                        blueServer.send(new NewConnection(nickname, idNew));
+                                        server.broadcast(Filters.equalTo(blueServer), new NewConnection(nickname, idNew));
+                                        final Team newTeam = chooseTeam(idNew);
+//                                        final Team newTeam = Team.Blue;
+                                        Timer t = new Timer();
+                                        t.schedule(new TimerTask() {
+                                            @Override
+                                            public void run() {
+                                                if (newTeam.equals(Team.Blue)) {
+                                                    source.send(new ConnectServer(Networking.HOST_BLUE, Networking.PORT_BLUE));
+                                                } else if (newTeam.equals(Team.Red)) {
+                                                    source.send(new ConnectServer(Networking.HOST_RED, Networking.PORT_RED));
+                                                }
+                                            }
+                                        }, 500);
+
                                         return null;
                                     }
                                 });
@@ -576,5 +589,9 @@ public class LoginServer extends SimpleApplication {
             }
         }
         return result;
+    }
+
+    public int getId(String nick) {
+        return nicknameToId.get(nick);
     }
 }

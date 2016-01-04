@@ -19,21 +19,23 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class Networking {
 
     public static final int PORT_LOGIN = 6000;
-    public static final String HOST_LOGIN = "192.168.1.2";
+    public static final String HOST_LOGIN = "127.0.0.1";
     public static final int PORT_BLUE = 7000;
-    public static final String HOST_BLUE = "192.168.1.2";
+    public static final String HOST_BLUE = "127.0.0.1";
     public static final int PORT_RED = 8000;
-    public static final String HOST_RED = "192.168.1.2";
+    public static final String HOST_RED = "127.0.0.1";
 
     public static void initialiseSerializables() {
         Serializer.registerClass(Aggregation.class);
         Serializer.registerClass(Alive.class);
         Serializer.registerClass(Connect.class);
+        Serializer.registerClass(ConnectServer.class);
         Serializer.registerClass(ConnectionRejected.class);
         Serializer.registerClass(DeadPlayer.class);
         Serializer.registerClass(DisconnectedPlayer.class);
         Serializer.registerClass(FireInput.class);
         Serializer.registerClass(Firing.class);
+        Serializer.registerClass(NewConnection.class);
         Serializer.registerClass(NewPlayerConnected.class);
         Serializer.registerClass(PickTreasureInput.class);
         Serializer.registerClass(PlayerRespawn.class);
@@ -103,6 +105,56 @@ public class Networking {
         }
     }
 
+    /**
+     * Login Server -> Client Determines the server the client should connect to
+     */
+    @Serializable
+    public static class ConnectServer extends AbstractMessage {
+
+        private String ip;
+        private int port;
+
+        public ConnectServer() {
+        }
+
+        public ConnectServer(String ip, int port) {
+            this.ip = ip;
+            this.port = port;
+        }
+
+        public String getIp() {
+            return ip;
+        }
+
+        public int getPort() {
+            return port;
+        }
+    }
+
+    @Serializable 
+    public static class NewConnection extends AbstractMessage {
+        
+        private String nickname;
+        private int id;
+
+        public NewConnection() {
+        }
+
+        public NewConnection(String nickname, int id) {
+            this.nickname = nickname;
+            this.id = id;
+        }
+
+        public String getNickname() {
+            return nickname;
+        }
+
+        public int getId() {
+            return id;
+        }
+        
+        
+    }
     /**
      * Server -> Client Server says to the client that it can't connect because
      * of given reason
@@ -660,12 +712,11 @@ public class Networking {
             return origin;
         }
     }
-    
+
     @Serializable
     public static class HeartBeat extends AbstractMessage {
 
         public HeartBeat() {
         }
-        
     }
 }

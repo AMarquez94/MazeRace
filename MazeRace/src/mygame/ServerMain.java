@@ -110,9 +110,9 @@ public class ServerMain extends SimpleApplication {
         bluePlayersCon = new ArrayList<HostedConnection>();
 
         timeouts = new float[MAX_PLAYERS];
-        for (int i = 0; i < MAX_PLAYERS; i++) {
-            timeouts[i] = TIMEOUT;
-        }
+//        for (int i = 0; i < MAX_PLAYERS; i++) {
+//            timeouts[i] = 0;
+//        }
 
         state = ServerGameState.GameStopped;
         cam.setLocation(new Vector3f(0.74115396f, -70.0f, -150.33556f));
@@ -126,6 +126,15 @@ public class ServerMain extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
+        for(int i = 0; i < timeouts.length; i++){
+            if(timeouts[i] != 0){
+                System.out.println("Timeout " + i + " : " + timeouts[i]);
+                timeouts[i] = timeouts[i] - tpf;
+                if(timeouts[i] <= 0){
+                    disconnectPlayer(i);
+                }
+            }
+        }
         if (state == ServerGameState.GameStopped) {
             //Send a Prepare every second. TODO implement this better.
             if (periodic_threshold > 1) {
@@ -199,12 +208,30 @@ public class ServerMain extends SimpleApplication {
                 }
                 connectedPlayers++;
                 shootables.attachChild(players[i]);
+                timeouts[i] = TIMEOUT;
                 find = true;
             } else {
                 i++;
             }
         }
         return i;
+    }
+    
+    private void disconnectPlayer(int id){
+        if(players[id].getTeam() == Team.Blue){
+            bluePlayersCon.remove(hostedConnections[id]);
+            bluePlayers--;
+        }
+        else{
+            redPlayersCon.remove(hostedConnections[id]);
+            redPlayers--;
+        }
+        hostedConnections[id] = null;
+        connectedPlayers--;
+        shootables.detachChild(players[id]);
+        players[id] = null;
+        server.broadcast(Filters.in(hostedConnections), new DisconnectedPlayer(id));
+        timeouts[id] = 0;
     }
 
     private void setUpInitialPositions() {
@@ -283,17 +310,32 @@ public class ServerMain extends SimpleApplication {
                     if (message instanceof Connect) {
                         actionConnect(source, message);
                     } else if (message instanceof PlayerMoved) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionPlayerMoved(source, message);
                     } else if (message instanceof MarkInput) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionMarkInput(source, message);
                     } else if (message instanceof FireInput) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionFireInput(source, message);
                     } else if (message instanceof PickTreasureInput) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionPickTreasureInput(source, message);
                     } else if (message instanceof WantToRespawn) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionWantToRespawn(source, message);
                     } else if (message instanceof SendMessage) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionSendMessage(source, message);
+                    } else if (message instanceof Alive){
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                     }
                 }
             }
@@ -345,7 +387,6 @@ public class ServerMain extends SimpleApplication {
             if (m instanceof PlayerMoved) {
 
                 final int id = findId(source);
-                timeouts[id] = TIMEOUT;
 
                 PlayerMoved message = (PlayerMoved) m;
 
@@ -371,7 +412,6 @@ public class ServerMain extends SimpleApplication {
             if (m instanceof MarkInput) {
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
-                timeouts[id] = TIMEOUT;
 
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();
@@ -402,7 +442,6 @@ public class ServerMain extends SimpleApplication {
 
                 FireInput message = (FireInput) m;
                 final int id = findId(source);
-                timeouts[id] = TIMEOUT;
 
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();

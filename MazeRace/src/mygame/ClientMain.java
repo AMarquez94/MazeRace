@@ -208,10 +208,13 @@ public class ClientMain extends SimpleApplication {
      * Removes player with given id.
      */
     private void removePlayer(int id) {
+        players.get(id).removeFromPhysicsSpace(bas);
+        players.get(id).detachAllChildren();
         players.remove(id);
         //TODO remove avatar from the scene graph
     }
 
+    
     private void setUpNetworking() {
         //Start connection
         try {
@@ -585,10 +588,13 @@ public class ClientMain extends SimpleApplication {
                         shootIndicator[i].setCullHint(CullHint.Always);
                     }
                 }
+                
+                sendMessage(new Alive());
             }
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
+            sendMessage(new Alive());
             
         } else if(state == ClientGameState.Chat){
             
@@ -945,6 +951,7 @@ public class ClientMain extends SimpleApplication {
                             initHealthBar();
                             initShootingIndicators();
                             initChatHUD();
+                            state = ClientGameState.GameStopped;
                             return null;
                         }
                     });
@@ -959,7 +966,13 @@ public class ClientMain extends SimpleApplication {
             } else if (m instanceof DisconnectedPlayer) {
                 DisconnectedPlayer message = (DisconnectedPlayer) m;
                 final int id = message.getPlayerID();
-                removePlayer(id);
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+
+                        removePlayer(id);
+                        return null;
+                    }
+                });
                 System.out.println("Player " + id + " left the game.");
             } else if (m instanceof MovingPlayers) {
                 final MovingPlayers message = (MovingPlayers) m;

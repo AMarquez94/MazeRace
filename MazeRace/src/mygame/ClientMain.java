@@ -551,6 +551,7 @@ public class ClientMain extends SimpleApplication {
 
                 getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection); // THIS IS WHERE THE WALKING HAPPENS
 
+                getPlayer().getCharacterControl().setViewDirection(cam.getDirection());
                 Vector3f player_pos = getPlayer().getWorldTranslation();
                 getPlayer().setPosition(player_pos);
                 //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());

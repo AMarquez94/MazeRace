@@ -584,15 +584,6 @@ public class ClientMain extends SimpleApplication {
                 //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
                 cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
                 
-                
-                
-                
-                
-                
-                
-                
-                
-                
                 //send new state to server TODO: rotation
                 sendMessage(new PlayerMoved(getPlayer().getPosition(),
                         quaternionToArray(getPlayer().getWorldRotation()),

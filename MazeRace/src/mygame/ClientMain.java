@@ -43,6 +43,7 @@ import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.util.BufferUtils;
 import enums.ClientGameState;
 import enums.Team;
+import gameobjects.Explosion;
 import gameobjects.Mark;
 import gameobjects.Player;
 import java.io.IOException;
@@ -340,6 +341,7 @@ public class ClientMain extends SimpleApplication {
                 } else if (name.equals("Pos") && !keyPressed) {
                     //System.out.println(getPlayer().getWorldTranslation());
                     System.out.println(cam.getDirection());
+                    
                 } else if(name.equals("Chat") && !keyPressed){
                     message.setText("");
                     chatString = "";
@@ -583,6 +585,9 @@ public class ClientMain extends SimpleApplication {
                 getPlayer().setPosition(player_pos);
                 //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
                 cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
+                
+                listener.setLocation(cam.getLocation());
+                listener.setRotation(cam.getRotation());
                 
                 //send new state to server TODO: rotation
                 sendMessage(new PlayerMoved(getPlayer().getPosition(),
@@ -1082,6 +1087,11 @@ public class ClientMain extends SimpleApplication {
                             deadPlayerHUD(idShooting);
                             state = ClientGameState.Dead;
                         }
+                        
+                        Explosion e = new Explosion(players.get(idShooted).getLocalTranslation(),assetManager,app);
+                        renderManager.preloadScene(e);
+                        rootNode.attachChild(e);
+                        e.start();
                         //Remove dead player from the scene graph
                         return null;
                     }

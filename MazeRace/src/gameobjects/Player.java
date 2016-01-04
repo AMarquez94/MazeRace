@@ -70,7 +70,9 @@ public class Player extends Node {
 
         // Audio gun
         audio_gun = new AudioNode(app.getAssetManager(), "Sound/Effects/Gun.wav", false);
-        audio_gun.setPositional(false);
+        audio_gun.setPositional(true);
+        audio_gun.setRefDistance(2f);
+        audio_gun.setMaxDistance(2000f);
         audio_gun.setLooping(false);
         audio_gun.setVolume(2);
         this.attachChild(audio_gun);

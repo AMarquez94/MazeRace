@@ -43,6 +43,7 @@ import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.util.BufferUtils;
 import enums.ClientGameState;
 import enums.Team;
+import gameobjects.Explosion;
 import gameobjects.Mark;
 import gameobjects.Player;
 import java.io.IOException;
@@ -85,7 +86,6 @@ public class ClientMain extends SimpleApplication {
     private static ClientGameState state;
     //Nickname Variables (used in nicknameHUD)
     private String nickname;
-    private boolean goodNickname;
     private float counter;
     private NicknameHUDListener initialListener;
     private BitmapText nickNameHud;
@@ -102,6 +102,25 @@ public class ClientMain extends SimpleApplication {
     private float transparency = 1;
     private Material matShoot;
     private String nickNameHudAux = "";
+    //Chat constants
+    private final int MAX_MESSAGES = 5;
+    private final int LOCATION_X = 20;
+    private final int LOCATION_Y = 60;
+    private final int HEIGHT = 25;
+    private final int WIDTH = 600;
+    private final int TEXT_HEIGHT = 25;
+    private final float CHAT_SECONDS = 5f;
+    //Chat variables
+    private Geometry[] chatBackground;
+    private BitmapText[] chat;
+    private String chatString;
+    private Geometry messageBackground;
+    private BitmapText message;
+    private ChatListener chatListener;
+    private boolean chatEnabled = false;
+    private float chatTimeout = CHAT_SECONDS;
+    //Useful variables
+    private Quaternion tmpQuat;
 
     public static void main(String[] args) {
         app = new ClientMain();
@@ -124,7 +143,6 @@ public class ClientMain extends SimpleApplication {
         this.pauseOnFocus = false;
 
         /* We initialize the first dialogue to choose nickname */
-        goodNickname = false;
         initialListener = new NicknameHUDListener();
         inputManager.addRawInputListener(initialListener);
         nickNameHud = new BitmapText(guiFont, false);
@@ -154,6 +172,8 @@ public class ClientMain extends SimpleApplication {
         for (int i = 0; i < 4; i++) {
             shootIndicator[i] = new Node();
         }
+        
+        tmpQuat = new Quaternion();
     }
 
     private Player getPlayer() {
@@ -193,10 +213,13 @@ public class ClientMain extends SimpleApplication {
      * Removes player with given id.
      */
     private void removePlayer(int id) {
+        players.get(id).removeFromPhysicsSpace(bas);
+        players.get(id).detachAllChildren();
         players.remove(id);
         //TODO remove avatar from the scene graph
     }
 
+    
     private void setUpNetworking() {
         //Start connection
         try {
@@ -254,8 +277,9 @@ public class ClientMain extends SimpleApplication {
         inputManager.addMapping("PickUp", new KeyTrigger(KeyInput.KEY_F)); //maybe find a better binding?
         inputManager.addMapping("Pos", new KeyTrigger(KeyInput.KEY_P)); //click to get position. debugging functionality
         inputManager.addMapping("Mark", new KeyTrigger(KeyInput.KEY_M), new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
+        inputManager.addMapping("Chat", new KeyTrigger(KeyInput.KEY_RETURN));
         inputManager.addListener(playerMoveListener, "CharLeft", "CharRight", "CharForward", "CharBackward", "CharJump");
-        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp", "Pos");
+        inputManager.addListener(playerShootListener, "Shoot", "Mark", "PickUp", "Pos", "Chat");
     }
     /*
      * Handles player movement actions.
@@ -315,7 +339,17 @@ public class ClientMain extends SimpleApplication {
                         }
                     }
                 } else if (name.equals("Pos") && !keyPressed) {
-                    System.out.println(getPlayer().getWorldTranslation());
+                    //System.out.println(getPlayer().getWorldTranslation());
+                    System.out.println(cam.getDirection());
+                    
+                } else if(name.equals("Chat") && !keyPressed){
+                    message.setText("");
+                    chatString = "";
+                    counter = 0;
+                    state = ClientGameState.Chat;
+                    messageBackground.setCullHint(CullHint.Inherit);
+                    chatListener = new ChatListener();
+                    inputManager.addRawInputListener(chatListener);
                 }
             } else if (state == ClientGameState.Dead) {
 
@@ -323,6 +357,19 @@ public class ClientMain extends SimpleApplication {
                 if (name.equals("Shoot") && !keyPressed) {
 
                     sendMessage(new WantToRespawn());
+                }
+            } else if(state == ClientGameState.Chat){
+                if (name.equals("Chat") && !keyPressed) {
+                    state = ClientGameState.GameRunning;
+                    sendMessage(new SendMessage(chatString));
+                    inputManager.removeRawInputListener(chatListener);
+                    app.enqueue(new Callable() {
+                        public Object call() throws Exception {
+                            message.setText("");
+                            messageBackground.setCullHint(CullHint.Always);
+                            return null;
+                        }
+                    });
                 }
             }
         }
@@ -460,8 +507,10 @@ public class ClientMain extends SimpleApplication {
                             settings.getHeight() / 2 + (nickNameHud.getLineHeight() / 2), 0);
                 }
             }
+
         } else if (state == ClientGameState.GameRunning || state == ClientGameState.Dead) {
             if (state == ClientGameState.GameRunning) {
+
                 Vector3f camDir = cam.getDirection().clone();
                 Vector3f camLeft = cam.getLeft().clone();
                 camDir.y = 0;
@@ -505,20 +554,62 @@ public class ClientMain extends SimpleApplication {
                     }
                 }
 
+                /* This is used to limit the updown of the camera */
+                
+                float[] angles=new float[3];
+
+                cam.getRotation().toAngles(angles);
+
+                //check the x rotation
+
+                if(angles[0] >= FastMath.HALF_PI - 0.1f){
+
+                    angles[0]=FastMath.HALF_PI - 0.1f;
+
+                    cam.setRotation(tmpQuat.fromAngles(angles));
+
+                }else if(angles[0] <= -FastMath.HALF_PI + 0.1f){
+
+                    angles[0]=-FastMath.HALF_PI + 0.1f;
+
+                    cam.setRotation(tmpQuat.fromAngles(angles));
+
+                }
+                
                 getPlayer().walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
 
                 getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection); // THIS IS WHERE THE WALKING HAPPENS
 
+                getPlayer().getCharacterControl().setViewDirection(cam.getDirection());
                 Vector3f player_pos = getPlayer().getWorldTranslation();
                 getPlayer().setPosition(player_pos);
                 //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
                 cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
-
+                
+                listener.setLocation(cam.getLocation());
+                listener.setRotation(cam.getRotation());
+                
                 //send new state to server TODO: rotation
                 sendMessage(new PlayerMoved(getPlayer().getPosition(),
                         quaternionToArray(getPlayer().getWorldRotation()),
                         getPlayer().getCharacterControl().getViewDirection(),
                         getPlayer().getAnimChannel().getAnimationName()));
+                
+                if(chatEnabled){
+                    chatTimeout = chatTimeout - tpf;
+                    if(chatTimeout < 0){
+                        chatEnabled = false;
+                        chatTimeout = CHAT_SECONDS;
+                        for(int i = 0; i < chat.length; i++){
+                            if(!chat[i].getText().equals("")){
+                                chat[i].setText("");
+                                chatBackground[i].setCullHint(CullHint.Always);
+                            }
+                        }
+                    }
+                }
+                
+                
             }
             for (int i = 0; i < shooted.length; i++) {
                 if (shooted[i]) {
@@ -530,11 +621,48 @@ public class ClientMain extends SimpleApplication {
                         shootIndicator[i].setCullHint(CullHint.Always);
                     }
                 }
+                
+                sendMessage(new Alive());
             }
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
-        }
+            sendMessage(new Alive());
+            
+        } else if(state == ClientGameState.Chat){
+            
+                up = false;
+                down = false;
+                right = false;
+                left = false;
+                
+                Vector3f camDir = cam.getDirection().clone();
+                Vector3f camLeft = cam.getLeft().clone();
+                camDir.y = 0;
+                camLeft.y = 0;
+                camDir.normalizeLocal();
+                camLeft.normalizeLocal();
+                getPlayer().walkDirection.set(0, 0, 0);
+                getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection);
+                Vector3f player_pos = getPlayer().getWorldTranslation();
+                getPlayer().setPosition(player_pos);
+                cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
+
+                counter += tpf;
+                if (counter > 0.5f) {
+                    message.setText(chatString + "|");
+                    if (counter > 1f) {
+                        counter = 0;
+                    }
+                } else {
+                    message.setText(chatString);
+                }
+                
+                sendMessage(new PlayerMoved(getPlayer().getPosition(),
+                        quaternionToArray(getPlayer().getWorldRotation()),
+                        getPlayer().getCharacterControl().getViewDirection(),
+                        getPlayer().getAnimChannel().getAnimationName()));
+       }
     }
 
     @Override
@@ -587,7 +715,7 @@ public class ClientMain extends SimpleApplication {
                     client.send(message); //send packet
                     
                     //for debug
-                    if(timeout) System.out.println("TIMEOUT amount of messages: " + message.getSize()); else System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/"+ TIMEOUT);
+                   // if(timeout) System.out.println("TIMEOUT amount of messages: " + message.getSize()); else System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/"+ TIMEOUT);
                 }
             }
         }
@@ -644,6 +772,88 @@ public class ClientMain extends SimpleApplication {
                 settings.getHeight() / 2 + (deadPlayerText.getHeight() / 2), 0);
         ch.setText("");
     }
+    
+    private void initChatHUD(){
+        Material matBackground = new Material(assetManager,
+                "Common/MatDefs/Misc/Unshaded.j3md");
+        matBackground.setColor("Color", new ColorRGBA(0,0,0,0.8f));
+        matBackground.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        
+        messageBackground = new Geometry("message", new Quad(WIDTH,HEIGHT));
+        messageBackground.setMaterial(matBackground);
+        messageBackground.setLocalTranslation(LOCATION_X,LOCATION_Y,0);
+        messageBackground.setCullHint(CullHint.Always);
+        
+        message = new BitmapText(guiFont);
+        message.setLocalTranslation(LOCATION_X, LOCATION_Y + TEXT_HEIGHT, 0);
+        //66 caracteres max
+        message.setText("");
+        
+        chatBackground = new Geometry[MAX_MESSAGES];
+        chat = new BitmapText[MAX_MESSAGES];
+        for(int i = 0; i < chatBackground.length; i++){
+            chatBackground[i] = new Geometry("chat " + i, new Quad(WIDTH,HEIGHT));
+            chatBackground[i].setMaterial(matBackground);
+            chatBackground[i].setLocalTranslation(LOCATION_X, 
+                    settings.getHeight()/2-HEIGHT/2 + i*HEIGHT,0);
+            chatBackground[i].setCullHint(CullHint.Always);
+            guiNode.attachChild(chatBackground[i]);
+            
+            chat[i] = new BitmapText(guiFont);
+            chat[i].setLocalTranslation(LOCATION_X,  
+                    settings.getHeight()/2-HEIGHT/2 + TEXT_HEIGHT + i*HEIGHT, 0);
+            guiNode.attachChild(chat[i]);
+        }
+        
+        
+        guiNode.attachChild(messageBackground);
+        guiNode.attachChild(message);
+    }
+    
+    public void putMessage(int senderId, String message){
+        
+        boolean free = false;
+        int i = 0;
+        while(i < chat.length && !free){
+            if(!chat[i].getText().equals("")){
+                i++;
+            }
+            else{
+                free = true;
+            }
+        }
+        
+        if(free){
+            
+            /* There is space in the chat queue */
+            if(i == 0){
+                
+                /* First message */
+                chatBackground[i].setCullHint(CullHint.Inherit);
+                chat[i].setText("(" + players.get(senderId).getNickname() + "): " + message);
+            }
+            
+            else{
+                
+                for(int j = i; j > 0; j--){
+                    chatBackground[j].setCullHint(CullHint.Inherit);
+                    chat[j].setText(chat[j-1].getText());
+                }
+                chat[0].setText("(" + players.get(senderId).getNickname() + "): " + message);
+            }
+        } else{
+            
+            /* There is no space in the chat queue -> We delete the oldest */
+            for(int j = chat.length-1; j > 0; j--){
+                chatBackground[j].setCullHint(CullHint.Inherit);
+                chat[j].setText(chat[j-1].getText());
+            }
+            chat[0].setText("(" + players.get(senderId).getNickname() + "): " + message);
+        }
+        
+        chatEnabled = true;
+        chatTimeout = CHAT_SECONDS;
+    }
 
     public class NicknameHUDListener implements RawInputListener {
 
@@ -669,7 +879,6 @@ public class ClientMain extends SimpleApplication {
             if (evt.isPressed()) {
                 if (evt.getKeyCode() == KeyInput.KEY_RETURN) {
                     try {
-                        goodNickname = true;
                         sendMessage(new Connect(nickname));
                     } catch (Throwable ex) {
                         Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
@@ -684,6 +893,48 @@ public class ClientMain extends SimpleApplication {
                     nickname = nickname + evt.getKeyChar();
                     nickNameHud.setText("Insert nickname: " + nickname + "|");
 
+                }
+            }
+        }
+
+        public void onTouchEvent(TouchEvent evt) {
+        }
+    }
+    
+    public class ChatListener implements RawInputListener {
+
+        public void beginInput() {
+        }
+
+        public void endInput() {
+        }
+
+        public void onJoyAxisEvent(JoyAxisEvent evt) {
+        }
+
+        public void onJoyButtonEvent(JoyButtonEvent evt) {
+        }
+
+        public void onMouseMotionEvent(MouseMotionEvent evt) {
+        }
+
+        public void onMouseButtonEvent(MouseButtonEvent evt) {
+        }
+
+        public void onKeyEvent(KeyInputEvent evt) {
+            if (evt.isPressed()) {
+                if (evt.getKeyCode() == KeyInput.KEY_BACK) {
+                    if (chatString.length() > 0) {
+                        chatString = chatString.substring(0, chatString.length() - 1);
+                    }
+                    message.setText(chatString + "|");
+                    
+                } else {
+                    if(chatString.length()<60){
+                        chatString = chatString + evt.getKeyChar();
+                        message.setText(chatString + "|");
+                    }
+                   
                 }
             }
         }
@@ -732,16 +983,29 @@ public class ClientMain extends SimpleApplication {
                             //Create lifeBar in GUI
                             initHealthBar();
                             initShootingIndicators();
+                            initChatHUD();
+                            state = ClientGameState.GameStopped;
                             return null;
                         }
                     });
                 } else {
-                    setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), false);
+                    app.enqueue(new Callable() {
+                        public Object call() throws Exception {
+                            setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), false);
+                            return null;
+                        }
+                    });
                 }
             } else if (m instanceof DisconnectedPlayer) {
                 DisconnectedPlayer message = (DisconnectedPlayer) m;
                 final int id = message.getPlayerID();
-                removePlayer(id);
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+
+                        removePlayer(id);
+                        return null;
+                    }
+                });
                 System.out.println("Player " + id + " left the game.");
             } else if (m instanceof MovingPlayers) {
                 final MovingPlayers message = (MovingPlayers) m;
@@ -823,6 +1087,11 @@ public class ClientMain extends SimpleApplication {
                             deadPlayerHUD(idShooting);
                             state = ClientGameState.Dead;
                         }
+                        
+                        Explosion e = new Explosion(players.get(idShooted).getLocalTranslation(),assetManager,app);
+                        renderManager.preloadScene(e);
+                        rootNode.attachChild(e);
+                        e.start();
                         //Remove dead player from the scene graph
                         return null;
                     }
@@ -937,6 +1206,20 @@ public class ClientMain extends SimpleApplication {
                         });
                     }
                 }
+            } else if (m instanceof BroadcastMessage){
+                
+                final BroadcastMessage message = (BroadcastMessage) m;
+                
+                final int senderId = message.getId();
+                final String sentMessage = message.getMessage();
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        
+                        putMessage(senderId,sentMessage);
+                        return null;
+                    }
+                });
             }
         }
     }

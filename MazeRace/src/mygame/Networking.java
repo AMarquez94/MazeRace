@@ -52,6 +52,8 @@ public class Networking {
         Serializer.registerClass(WantToRespawn.class);
         Serializer.registerClass(LoginConnected.class);
         Serializer.registerClass(HeartBeat.class);
+        Serializer.registerClass(SendMessage.class);
+        Serializer.registerClass(BroadcastMessage.class);
     }
 
     /**
@@ -667,5 +669,53 @@ public class Networking {
         public HeartBeat() {
         }
         
+    }
+    /**
+     * Client -> Server
+     * Client sends a message to the team chat
+     */
+    @Serializable
+    public static class SendMessage extends AbstractMessage {
+
+        private String message;
+        
+        public SendMessage() {
+        }
+        
+        public SendMessage(String message){
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+    }
+    
+    /**
+     * Server -> Client
+     * Server sends to the clients of the player's team with id "id" a message
+     * sent by him
+     */
+    @Serializable
+    public static class BroadcastMessage extends AbstractMessage {
+
+        private int id;
+        private String message;
+        
+        public BroadcastMessage() {
+        }
+        
+        public BroadcastMessage(int id, String message){
+            this.id = id;
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public int getId() {
+            return id;
+        }
     }
 }

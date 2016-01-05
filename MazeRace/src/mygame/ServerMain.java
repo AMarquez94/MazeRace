@@ -48,9 +48,10 @@ public class ServerMain extends SimpleApplication {
     //GLOBAL VARIABLES
     private static Server server;
     private HostedConnection[] hostedConnections;
+    private ArrayList<HostedConnection> redPlayersCon;
+    private ArrayList<HostedConnection> bluePlayersCon;
     private BulletAppState bas;
     private ServerPlayer[] players;
-    private String[] nicknames;
     private int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
@@ -105,11 +106,13 @@ public class ServerMain extends SimpleApplication {
 //            nicknames[i] = "";
 //        }
         hostedConnections = new HostedConnection[MAX_PLAYERS];
+        redPlayersCon = new ArrayList<HostedConnection>();
+        bluePlayersCon = new ArrayList<HostedConnection>();
 
         timeouts = new float[MAX_PLAYERS];
-        for (int i = 0; i < MAX_PLAYERS; i++) {
-            timeouts[i] = TIMEOUT;
-        }
+//        for (int i = 0; i < MAX_PLAYERS; i++) {
+//            timeouts[i] = 0;
+//        }
 
         state = ServerGameState.GameStopped;
         cam.setLocation(new Vector3f(0.74115396f, -70.0f, -150.33556f));
@@ -123,6 +126,15 @@ public class ServerMain extends SimpleApplication {
 
     @Override
     public void simpleUpdate(float tpf) {
+        for(int i = 0; i < timeouts.length; i++){
+            if(timeouts[i] != 0){
+                System.out.println("Timeout " + i + " : " + timeouts[i]);
+                timeouts[i] = timeouts[i] - tpf;
+                if(timeouts[i] <= 0){
+                    disconnectPlayer(i);
+                }
+            }
+        }
         if (state == ServerGameState.GameStopped) {
             //Send a Prepare every second. TODO implement this better.
             if (periodic_threshold > 1) {
@@ -187,16 +199,39 @@ public class ServerMain extends SimpleApplication {
             if (players[i] == null) {
                 players[i] = new ServerPlayer(i, chooseTeam(i), initialPositions[i],
                         nickname, app);
-                //players[i].addToPhysicsSpace(bas);
                 hostedConnections[i] = s;
+                if(players[i].getTeam() == Team.Blue){
+                    bluePlayersCon.add(s);
+                }
+                else{
+                    redPlayersCon.add(s);
+                }
                 connectedPlayers++;
                 shootables.attachChild(players[i]);
+                timeouts[i] = TIMEOUT;
                 find = true;
             } else {
                 i++;
             }
         }
         return i;
+    }
+    
+    private void disconnectPlayer(int id){
+        if(players[id].getTeam() == Team.Blue){
+            bluePlayersCon.remove(hostedConnections[id]);
+            bluePlayers--;
+        }
+        else{
+            redPlayersCon.remove(hostedConnections[id]);
+            redPlayers--;
+        }
+        hostedConnections[id] = null;
+        connectedPlayers--;
+        shootables.detachChild(players[id]);
+        players[id] = null;
+        server.broadcast(Filters.in(hostedConnections), new DisconnectedPlayer(id));
+        timeouts[id] = 0;
     }
 
     private void setUpInitialPositions() {
@@ -275,15 +310,32 @@ public class ServerMain extends SimpleApplication {
                     if (message instanceof Connect) {
                         actionConnect(source, message);
                     } else if (message instanceof PlayerMoved) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionPlayerMoved(source, message);
                     } else if (message instanceof MarkInput) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionMarkInput(source, message);
                     } else if (message instanceof FireInput) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionFireInput(source, message);
                     } else if (message instanceof PickTreasureInput) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionPickTreasureInput(source, message);
                     } else if (message instanceof WantToRespawn) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                         actionWantToRespawn(source, message);
+                    } else if (message instanceof SendMessage) {
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
+                        actionSendMessage(source, message);
+                    } else if (message instanceof Alive){
+                        int id = findId(source);
+                        timeouts[id] = TIMEOUT;
                     }
                 }
             }
@@ -335,7 +387,6 @@ public class ServerMain extends SimpleApplication {
             if (m instanceof PlayerMoved) {
 
                 final int id = findId(source);
-                timeouts[id] = TIMEOUT;
 
                 PlayerMoved message = (PlayerMoved) m;
 
@@ -361,7 +412,6 @@ public class ServerMain extends SimpleApplication {
             if (m instanceof MarkInput) {
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
-                timeouts[id] = TIMEOUT;
 
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();
@@ -392,7 +442,6 @@ public class ServerMain extends SimpleApplication {
 
                 FireInput message = (FireInput) m;
                 final int id = findId(source);
-                timeouts[id] = TIMEOUT;
 
                 final Vector3f direction = message.getDirection();
                 final Vector3f position = message.getPosition();
@@ -467,6 +516,21 @@ public class ServerMain extends SimpleApplication {
             players[id].setPosition(initialPositions[id]);
 
             server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
+        }
+        
+        private void actionSendMessage(final HostedConnection source, final Message m){
+            if(m instanceof SendMessage){
+                
+                SendMessage message = (SendMessage) m;
+                final int id = findId(source);
+                
+                if(players[id].getTeam() == Team.Blue){
+                    server.broadcast(Filters.in(bluePlayersCon), new BroadcastMessage(id, message.getMessage()));
+                }
+                else{
+                    server.broadcast(Filters.in(redPlayersCon), new BroadcastMessage(id, message.getMessage()));
+                }
+            }
         }
     }
 

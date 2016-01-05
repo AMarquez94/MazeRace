@@ -6,12 +6,14 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.material.Material;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.terrain.geomipmap.TerrainLodControl;
 import com.jme3.terrain.heightmap.AbstractHeightMap;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import com.jme3.terrain.heightmap.ImageBasedHeightMap;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture.WrapMode;
+import com.jme3.util.SkyFactory;
 
 /**
  *
@@ -113,6 +115,21 @@ public class Maze {
          */
         TerrainLodControl control = new TerrainLodControl(terrain, simpleApplication.getCamera());
         terrain.addControl(control);
+        
+        /* We create the sky */
+      
+//        Texture west = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_west.jpg");
+//        Texture east = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_east.jpg");
+//        Texture north = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_north.jpg");
+//        Texture south = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_south.jpg");
+//        Texture up = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_up.jpg");
+//        Texture down = assetManager.loadTexture("Textures/Sky/Lagoon/lagoon_down.jpg");
+//        Spatial sky = SkyFactory.createSky(assetManager, west, east, north, south, up, down);
+        
+        Spatial sky = SkyFactory.createSky(assetManager, "Textures/Sky/Bright/BrightSky.dds", false);
+        sky.setLocalTranslation(0, -100, 0);
+        rootNode.attachChild(sky);
+        
         return terrain;
     }
 }

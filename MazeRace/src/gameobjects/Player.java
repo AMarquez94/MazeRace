@@ -63,6 +63,10 @@ public class Player extends Node {
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
         this.attachChild(player); // add it to the wrapper
 
+        
+        Node gun = (Node) app.getAssetManager().loadModel("Models/gun/gun2.j3o");
+        player.attachChild(gun);
+        gun.setLocalTranslation(0, 1f, 1.2f);
         // Position player
         this.setLocalTranslation(position);
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.

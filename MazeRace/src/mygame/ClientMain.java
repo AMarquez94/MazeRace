@@ -719,7 +719,7 @@ public class ClientMain extends SimpleApplication {
                     if (timeout) {
                         System.out.println("TIMEOUT amount of messages: " + message.getSize());
                     } else {
-                        System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/" + TIMEOUT);
+//                        System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/" + TIMEOUT);
                     }
                 }
             }
@@ -1140,6 +1140,7 @@ public class ClientMain extends SimpleApplication {
                     }
                 });
             } else if (m instanceof PutMark) {
+                System.out.println("Recived PutMark");
                 final PutMark message = (PutMark) m;
 
                 app.enqueue(new Callable() {

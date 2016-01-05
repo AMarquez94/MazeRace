@@ -318,7 +318,6 @@ public class LoginServer extends SimpleApplication {
                                         //Set up the character. TODO does not include orientation (maybe not needed)
                                         int idNew = connectPlayer(source);
                                         nicknameToId.put(nickname, idNew);
-                                        System.out.println("Send message");
                                         blueServer.send(new NewConnection(nickname, idNew));
                                         redServer.send(new NewConnection(nickname, idNew));
                                         final Team newTeam = chooseTeam(idNew);
@@ -386,6 +385,7 @@ public class LoginServer extends SimpleApplication {
 
         private void actionMarkInput(final HostedConnection source, final Message m) {
             if (m instanceof MarkInput) {
+                System.out.println("MarkInput on LS");
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;

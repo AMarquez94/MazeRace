@@ -48,14 +48,14 @@ public class BlueServer extends SimpleApplication {
     protected final static int DAMAGE_BULLET = 25;
     //GLOBAL VARIABLES
     private static Server server;
-    private HostedConnection[] hostedConnections;
+    private static HostedConnection[] hostedConnections;
     private BulletAppState bas;
-    private ServerPlayer[] players;
+    private static ServerPlayer[] players;
     private String[] nicknames;
     private int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
-    private Vector3f treasureLocation;
+    private static Vector3f treasureLocation;
     private TerrainQuad terrain;
     private float[] timeouts;
     private static Vector3f[] initialPositions;
@@ -300,6 +300,8 @@ public class BlueServer extends SimpleApplication {
                         server.broadcast(Filters.in(hostedConnections),
                                 packPrepareMessage());
                         server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                        clientRedServer.send(new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                                Team.Red, players[idNew].getPosition()));
                         return null;
                     }
                 });
@@ -334,6 +336,7 @@ public class BlueServer extends SimpleApplication {
 
         private void actionMarkInput(final HostedConnection source, final Message m) {
             if (m instanceof MarkInput) {
+                System.out.println("BlueServer: Got Mark Input");
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
@@ -349,11 +352,11 @@ public class BlueServer extends SimpleApplication {
                             //Must be changed by the coordinates and direction of the character
                             Ray ray = new Ray(position, direction);
                             terrain.collideWith(ray, results);
-
                             if (results.size() > 0) {
                                 CollisionResult closest = results.getClosestCollision();
                                 server.broadcast(Filters.in(hostedConnections),
-                                        new PutMark(players[id].getTeam(), closest.getContactPoint()));
+                                        new PutMark(Team.Blue, closest.getContactPoint()));
+                                clientRedServer.send(new PutMark(Team.Blue, closest.getContactPoint()));
                             }
                         }
                         return null;
@@ -460,7 +463,7 @@ public class BlueServer extends SimpleApplication {
         }
     }
 
-    private Prepare packPrepareMessage() {
+    private static Prepare packPrepareMessage() {
         Vector3f[] positions = new Vector3f[MAX_PLAYERS];
         float[][] orientations = new float[MAX_PLAYERS][4];
         String[] nickname = new String[MAX_PLAYERS];
@@ -539,6 +542,7 @@ public class BlueServer extends SimpleApplication {
         }
 
         clientLoginServer.addMessageListener(new LoginServerListener());
+        server.addMessageListener(new RedServerListener());
         clientLoginServer.send(new LoginConnected("blue"));
     }
 
@@ -553,9 +557,36 @@ public class BlueServer extends SimpleApplication {
                 final int id = message.getId();
                 nicknameToId.put(nickname, id);
             } else if (m instanceof Start) {
+                changeGameState(ServerGameState.GameRunning);
                 server.broadcast(new Start());
+            } else if (m instanceof PutMark) {
+                System.out.println("BlueServer: Message Mark");
+                PutMark message = (PutMark) m;
+                server.broadcast(Filters.in(hostedConnections),
+                        new PutMark(Team.Red, message.getPosition()));
+            } else if (m instanceof NewPlayerConnected) {
+                NewPlayerConnected message = (NewPlayerConnected) m;
+                int idNew = message.getId();
+                server.broadcast(Filters.in(hostedConnections),
+                        new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                        players[idNew].getTeam(), players[idNew].getPosition()));
+                server.broadcast(Filters.in(hostedConnections),
+                        packPrepareMessage());
+                server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
             }
             //#TODO implement here NewConnection
+        }
+    }
+
+    private static class RedServerListener implements MessageListener<HostedConnection> {
+
+        public void messageReceived(HostedConnection source, Message m) {
+            if (m instanceof PutMark) {
+                System.out.println("BlueServer: Message Mark");
+                PutMark message = (PutMark) m;
+                server.broadcast(Filters.in(hostedConnections),
+                        new PutMark(Team.Red, message.getPosition()));
+            }
         }
     }
 }

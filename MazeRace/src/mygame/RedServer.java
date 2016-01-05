@@ -48,14 +48,14 @@ public class RedServer extends SimpleApplication {
     protected final static int DAMAGE_BULLET = 25;
     //GLOBAL VARIABLES
     private static Server server;
-    private HostedConnection[] hostedConnections;
+    private static HostedConnection[] hostedConnections;
     private BulletAppState bas;
-    private ServerPlayer[] players;
+    private static ServerPlayer[] players;
     private String[] nicknames;
     private int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
-    private Vector3f treasureLocation;
+    private static Vector3f treasureLocation;
     private TerrainQuad terrain;
     private float[] timeouts;
     private static Vector3f[] initialPositions;
@@ -301,6 +301,8 @@ public class RedServer extends SimpleApplication {
                         server.broadcast(Filters.in(hostedConnections),
                                 packPrepareMessage());
                         server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                        clientBlueServer.send(new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                                Team.Red, players[idNew].getPosition()));
                         return null;
                     }
                 });
@@ -335,6 +337,7 @@ public class RedServer extends SimpleApplication {
 
         private void actionMarkInput(final HostedConnection source, final Message m) {
             if (m instanceof MarkInput) {
+                System.out.println("RedServer: Got Mark Input");
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
@@ -354,7 +357,8 @@ public class RedServer extends SimpleApplication {
                             if (results.size() > 0) {
                                 CollisionResult closest = results.getClosestCollision();
                                 server.broadcast(Filters.in(hostedConnections),
-                                        new PutMark(players[id].getTeam(), closest.getContactPoint()));
+                                        new PutMark(Team.Red, closest.getContactPoint()));
+                                clientBlueServer.send(new PutMark(Team.Red, closest.getContactPoint()));
                             }
                         }
                         return null;
@@ -461,7 +465,7 @@ public class RedServer extends SimpleApplication {
         }
     }
 
-    private Prepare packPrepareMessage() {
+    private static Prepare packPrepareMessage() {
         Vector3f[] positions = new Vector3f[MAX_PLAYERS];
         float[][] orientations = new float[MAX_PLAYERS][4];
         String[] nickname = new String[MAX_PLAYERS];
@@ -540,6 +544,7 @@ public class RedServer extends SimpleApplication {
         }
 
         clientLoginServer.addMessageListener(new LoginServerListener());
+        server.addMessageListener(new BlueServerListener());
         clientLoginServer.send(new LoginConnected("red"));
     }
 
@@ -554,7 +559,37 @@ public class RedServer extends SimpleApplication {
                 final int id = message.getId();
                 nicknameToId.put(nickname, id);
             } else if (m instanceof Start) {
+                changeGameState(ServerGameState.GameRunning);
                 server.broadcast(new Start());
+            } else if (m instanceof PutMark) {
+                System.out.println("ReadServer: Message Mark");
+                PutMark message = (PutMark) m;
+                server.broadcast(Filters.in(hostedConnections),
+                        new PutMark(Team.Blue, message.getPosition()));
+            } else if (m instanceof NewPlayerConnected) {
+                NewPlayerConnected message = (NewPlayerConnected) m;
+                int idNew = message.getId();
+                server.broadcast(Filters.in(hostedConnections),
+                        new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                        players[idNew].getTeam(), players[idNew].getPosition()));
+                server.broadcast(Filters.in(hostedConnections),
+                        packPrepareMessage());
+                server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+            }
+        }
+    }
+
+    private static class BlueServerListener implements MessageListener<HostedConnection> {
+
+        public void messageReceived(HostedConnection source, Message m) {
+
+            if (m instanceof PutMark) {
+                System.out.println("BlueServer: Message Mark");
+                PutMark message = (PutMark) m;
+                server.broadcast(Filters.in(hostedConnections),
+                        new PutMark(Team.Blue, message.getPosition()));
+
+
             }
         }
     }

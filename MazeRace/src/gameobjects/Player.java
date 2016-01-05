@@ -15,11 +15,11 @@ import com.jme3.font.BitmapText;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.BillboardControl;
-import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Quad;
 import enums.Team;
 
@@ -77,17 +77,16 @@ public class Player extends Node {
         
         
         pivot_gun = new Node();
-        gun = (Node) app.getAssetManager().loadModel("Models/gun/gun2.j3o");
+        gun = (Node) app.getAssetManager().loadModel("Models/gun/gun3.j3o");
         createFlash(app);
         player.attachChild(pivot_gun);
         pivot_gun.attachChild(gun);
         gun.attachChild(flash);
-        pivot_gun.move(0,1.2f,0.6f);
-        gun.move(0,0,0.6f);
-        flash.move(0,1.2f,2.3f);
+        pivot_gun.move(0,2.5f,1f);
+//        gun.move(0,0,0);
+        flash.move(0,0,2.3f);
         
         //TO BE REMOVED
-//        pivot_gun.rotate(FastMath.QUARTER_PI,0,0);
 //        gun.move(0,1.0f,1.2f);
         
 //        player.attachChild(pivot_gun);
@@ -324,5 +323,19 @@ public class Player extends Node {
         mat.setTexture("Texture", app.getAssetManager().loadTexture("Effects/Explosion/flash.png"));
         mat.setBoolean("PointSprite", true);
         flash.setMaterial(mat);
+    }
+    
+    public void aimGun(Vector3f direction){
+        
+        pivot_gun.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.asin(direction.y),new Vector3f(1,0,0)));
+//        float x = 0;
+        
+//        characterControl.getViewDirection()
+        
+        
+        
+        
+        
+        //pivot_gun.getLocalRotation().lookAt(0,direction.y,FastMath.abs(direction.z)), Vector3f.UNIT_Y);
     }
 }

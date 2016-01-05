@@ -25,6 +25,7 @@ import enums.Team;
 import gameobjects.ServerPlayer;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,6 +62,7 @@ public class RedServer extends SimpleApplication {
     private float periodic_threshold = 0; //temporary
     private static Client clientLoginServer;
     private static Client clientBlueServer;
+    private static HashMap<String, Integer> nicknameToId = new HashMap<String, Integer>();
     //game state
     private static ServerGameState state;
     private Node shootables;
@@ -182,26 +184,17 @@ public class RedServer extends SimpleApplication {
     /*
      * Connects a player and returns its id
      */
-    private int connectPlayer(String nickname, HostedConnection s) {
-        int i = 0;
-        boolean find = false;
-        while (i < players.length && !find) {
-            if (players[i] == null) {
-                players[i] = new ServerPlayer(i, chooseTeam(i), initialPositions[i],
-                        nickname, app);
-                //players[i].addToPhysicsSpace(bas);
-                hostedConnections[i] = s;
-                connectedPlayers++;
-                shootables.attachChild(players[i]);
-                find = true;
-            } else {
-                i++;
-            }
-        }
-        return i;
+    private void connectPlayer(String nickname, HostedConnection s, int id) {
+        players[id] = new ServerPlayer(id, Team.Red, initialPositions[id],
+                nickname, app);
+        //players[i].addToPhysicsSpace(bas);
+        hostedConnections[id] = s;
+        connectedPlayers++;
+        shootables.attachChild(players[id]);
     }
 
     private void setUpInitialPositions() {
+        //#TODO get inital positions from LS
         initialPositions = new Vector3f[MAX_PLAYERS];
         try {
             //team 1 (color?)
@@ -294,41 +287,23 @@ public class RedServer extends SimpleApplication {
             if (m instanceof Connect) {
                 Connect message = (Connect) m;
                 final String nickname = message.getNickname();
-                if (state == ServerGameState.GameStopped) {
-                    if (connectedPlayers != MAX_PLAYERS) {
-                        if (nickname.length() > 0 && nickname.length() <= 8) {
-                            if (!repeatedNickname(nickname)) {
-                                //TODO ID must be saved
-                                app.enqueue(new Callable() {
-                                    public Object call() throws Exception {
-                                        //Set up the character. TODO does not include orientation (maybe not needed)
-                                        int idNew = connectPlayer(nickname, source);
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                new NewPlayerConnected(idNew, players[idNew].getNickname(),
-                                                players[idNew].getTeam(), players[idNew].getPosition()));
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                packPrepareMessage());
-                                        server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
-                                        return null;
-                                    }
-                                });
 
-                            } else {
-                                server.broadcast(Filters.equalTo(source),
-                                        new ConnectionRejected("Nickname already in use"));
-                            }
-                        } else {
-                            server.broadcast(Filters.equalTo(source),
-                                    new ConnectionRejected("Bad nickname"));
-                        }
-                    } else {
-                        server.broadcast(Filters.equalTo(source),
-                                new ConnectionRejected("Maximum number of clients already connected"));
+                //TODO ID must be saved
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        //Set up the character. TODO does not include orientation (maybe not needed)
+                        int idNew = nicknameToId.get(nickname);
+//                        int idNew = 0;
+                        connectPlayer(nickname, source, idNew);
+                        server.broadcast(Filters.in(hostedConnections),
+                                new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                                players[idNew].getTeam(), players[idNew].getPosition()));
+                        server.broadcast(Filters.in(hostedConnections),
+                                packPrepareMessage());
+                        server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                        return null;
                     }
-                } else {
-                    server.broadcast(Filters.equalTo(source),
-                            new ConnectionRejected("Game has already started"));
-                }
+                });
             }
         }
 
@@ -572,7 +547,14 @@ public class RedServer extends SimpleApplication {
 
         public void messageReceived(Client source, Message m) {
             if (m instanceof HeartBeat) {
-                System.out.println("RedServer: HeartBeat from LS");
+                System.out.println("BlueServer: HeartBeat from LS");
+            } else if (m instanceof NewConnection) {
+                NewConnection message = (NewConnection) m;
+                final String nickname = message.getNickname();
+                final int id = message.getId();
+                nicknameToId.put(nickname, id);
+            } else if (m instanceof Start) {
+                server.broadcast(new Start());
             }
         }
     }

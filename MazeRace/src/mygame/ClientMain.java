@@ -221,7 +221,7 @@ public class ClientMain extends SimpleApplication {
 
     
     private void setUpNetworking() {
-        //Start connection
+        //Start connection to login server
         try {
             client = Network.connectToServer(Networking.HOST_LOGIN, Networking.PORT_LOGIN);
             client.start();
@@ -692,7 +692,7 @@ public class ClientMain extends SimpleApplication {
         public void run() {
             long timer; //declare timer
             Aggregation message; //declare aggregation packet
-            
+
             boolean timeout; //for debug. for printing send reason
 
             while (QUORUM > 0) { //loop forever
@@ -706,16 +706,21 @@ public class ClientMain extends SimpleApplication {
                     while (message.getSize() < QUORUM) { //while quorum is not reached
                         if (System.currentTimeMillis() - timer > TIMEOUT) { //check for timeout
                             timeout = true;
-                            break quorum_loop;                       
-                        } else if(messageQueue.size() > 0) { // else wait for more updates
+                            break quorum_loop;
+                        } else if (messageQueue.size() > 0) { // else wait for more updates
                             message.addMessage(messageQueue.poll()); //add update to packet
                         }
                     }
-                    
+
                     client.send(message); //send packet
-                    
+
                     //for debug
                    // if(timeout) System.out.println("TIMEOUT amount of messages: " + message.getSize()); else System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/"+ TIMEOUT);
+                    if (timeout) {
+                        System.out.println("TIMEOUT amount of messages: " + message.getSize());
+                    } else {
+                        System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/" + TIMEOUT);
+                    }
                 }
             }
         }
@@ -947,7 +952,21 @@ public class ClientMain extends SimpleApplication {
 
         public void messageReceived(Client source, Message m) {
 
-            if (m instanceof ConnectionRejected) {
+            if (m instanceof ConnectServer) {
+                ConnectServer message = (ConnectServer) m;
+                final String ip = message.getIp();
+                final int port = message.getPort();
+
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        client = Network.connectToServer(ip, port);
+                        client.start();
+                        client.addMessageListener(new NetworkMessageListener());
+                        client.send(new Connect(nickname));
+                        return null;
+                    }
+                });
+            } else if (m instanceof ConnectionRejected) {
 
                 ConnectionRejected message = (ConnectionRejected) m;
 

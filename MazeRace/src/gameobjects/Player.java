@@ -77,7 +77,7 @@ public class Player extends Node {
         
         
         pivot_gun = new Node();
-        gun = (Node) app.getAssetManager().loadModel("Models/gun/gun3.j3o");
+        gun = (Node) app.getAssetManager().loadModel("Models/gun/gun4.j3o");
         createFlash(app);
         player.attachChild(pivot_gun);
         pivot_gun.attachChild(gun);

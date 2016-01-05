@@ -7,14 +7,19 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.audio.AudioNode;
 import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.control.BetterCharacterControl;
+import com.jme3.effect.ParticleEmitter;
+import com.jme3.effect.ParticleMesh;
+import com.jme3.effect.shapes.EmitterSphereShape;
 import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.BillboardControl;
+import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Quad;
 import enums.Team;
 
@@ -26,7 +31,7 @@ import enums.Team;
 public class Player extends Node {
     //Objects
 
-    private Node player, treasure;
+    private Node player, treasure, gun, pivot_gun;
     private AudioNode audio_gun;
     private AudioNode audio_hit;
     private BetterCharacterControl characterControl;
@@ -49,6 +54,13 @@ public class Player extends Node {
     //Healthbar
     private Geometry healthbar;
     private boolean me;
+    //Flash
+    private ParticleEmitter flash;
+    private static final int COUNT_FACTOR = 1;
+    private static final float COUNT_FACTOR_F = 1f;
+
+    private static final boolean POINT_SPRITE = true;
+    private static final ParticleMesh.Type EMITTER_TYPE = POINT_SPRITE ? ParticleMesh.Type.Point : ParticleMesh.Type.Triangle;
 
     public Player(Team team, Vector3f position, String nickname, SimpleApplication app, boolean me) {
         this.team = team;
@@ -62,13 +74,34 @@ public class Player extends Node {
         // Load model
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
         this.attachChild(player); // add it to the wrapper
-
         
-        Node gun = (Node) app.getAssetManager().loadModel("Models/gun/gun2.j3o");
-        player.attachChild(gun);
-        gun.setLocalTranslation(0, 1f, 1.2f);
-        // Position player
-        this.setLocalTranslation(position);
+        
+        pivot_gun = new Node();
+        gun = (Node) app.getAssetManager().loadModel("Models/gun/gun2.j3o");
+        createFlash(app);
+        player.attachChild(pivot_gun);
+        pivot_gun.attachChild(gun);
+        gun.attachChild(flash);
+        pivot_gun.move(0,1.2f,0.6f);
+        gun.move(0,0,0.6f);
+        flash.move(0,1.2f,2.3f);
+        
+        //TO BE REMOVED
+//        pivot_gun.rotate(FastMath.QUARTER_PI,0,0);
+//        gun.move(0,1.0f,1.2f);
+        
+//        player.attachChild(pivot_gun);
+////        pivot_gun.setLocalTranslation(0,0,0.5f);
+//        pivot_gun.attachChild(gun);/* A colored lit cube. Needs light source! */ 
+//        flash.move(0,1.2f,2f);
+//        gun.move(0, 0, 1.2f);
+//        pivot_gun.move(0, 1f, 0);
+//        pivot_gun.rotate(1.2f,0,0);
+////        pivot_gun.rotate(1.12f, 0, 0);
+//        // Position player
+//        this.setLocalTranslation(position);
+        
+        
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
 
@@ -151,6 +184,9 @@ public class Player extends Node {
         if(me){
             player.setCullHint(CullHint.Always);
         }
+        
+        System.out.println(pivot_gun.getLocalTranslation());
+        System.out.println(gun.getLocalTranslation());
     }
 
     public Team getTeam() {
@@ -209,6 +245,7 @@ public class Player extends Node {
 
     public void playGunAudio() {
         this.audio_gun.playInstance();
+        flash.emitAllParticles();
     }
     
     public void playHitAudio(){
@@ -265,5 +302,27 @@ public class Player extends Node {
             this.setCullHint(CullHint.Inherit);
         }
         this.setPosition(position);
+    }
+    
+    private void createFlash(SimpleApplication app){
+        flash = new ParticleEmitter("Flash", EMITTER_TYPE, 24 * COUNT_FACTOR);
+        flash.setSelectRandomImage(true);
+        flash.setStartColor(new ColorRGBA(1f, 0.8f, 0.36f, (float) (1f / COUNT_FACTOR_F)));
+        flash.setEndColor(new ColorRGBA(1f, 0.8f, 0.36f, 0f));
+        flash.setStartSize(0.1f);
+        flash.setEndSize(0.4f);
+        flash.setShape(new EmitterSphereShape(Vector3f.ZERO, .05f));
+        flash.setParticlesPerSec(0);
+        flash.setGravity(0, 0, 0);
+        flash.setLowLife(.2f);
+        flash.setHighLife(.2f);
+        flash.setInitialVelocity(new Vector3f(0, 5f, 0));
+        flash.setVelocityVariation(1);
+        flash.setImagesX(2);
+        flash.setImagesY(2);
+        Material mat = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Particle.j3md");
+        mat.setTexture("Texture", app.getAssetManager().loadTexture("Effects/Explosion/flash.png"));
+        mat.setBoolean("PointSprite", true);
+        flash.setMaterial(mat);
     }
 }

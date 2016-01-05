@@ -202,7 +202,7 @@ public class LoginServer extends SimpleApplication {
         int i = 0;
         boolean find = false;
         while (i < players.length && !find) {
-            if (players[i] == null) {
+            if (hostedConnections[i] == null) {
                 hostedConnections[i] = s;
                 connectedPlayers++;
                 find = true;
@@ -322,18 +322,22 @@ public class LoginServer extends SimpleApplication {
                                         redServer.send(new NewConnection(nickname, idNew));
                                         final Team newTeam = chooseTeam(idNew);
 //                                        final Team newTeam = Team.Blue;
-                                        Timer t = new Timer();
-                                        t.schedule(new TimerTask() {
-                                            @Override
-                                            public void run() {
-                                                if (newTeam.equals(Team.Blue)) {
-                                                    source.send(new ConnectServer(Networking.HOST_BLUE, Networking.PORT_BLUE));
-                                                } else if (newTeam.equals(Team.Red)) {
-                                                    source.send(new ConnectServer(Networking.HOST_RED, Networking.PORT_RED));
-                                                }
-                                            }
-                                        }, 500);
-
+//                                        Timer t = new Timer();
+//                                        t.schedule(new TimerTask() {
+//                                            @Override
+//                                            public void run() {
+//                                                if (newTeam.equals(Team.Blue)) {
+//                                                    source.send(new ConnectServer(Networking.HOST_BLUE, Networking.PORT_BLUE));
+//                                                } else if (newTeam.equals(Team.Red)) {
+//                                                    source.send(new ConnectServer(Networking.HOST_RED, Networking.PORT_RED));
+//                                                }
+//                                            }
+//                                        }, 500);
+                                        if (newTeam.equals(Team.Blue)) {
+                                            source.send(new ConnectServer(Networking.HOST_BLUE, Networking.PORT_BLUE));
+                                        } else if (newTeam.equals(Team.Red)) {
+                                            source.send(new ConnectServer(Networking.HOST_RED, Networking.PORT_RED));
+                                        }
                                         return null;
                                     }
                                 });
@@ -385,7 +389,6 @@ public class LoginServer extends SimpleApplication {
 
         private void actionMarkInput(final HostedConnection source, final Message m) {
             if (m instanceof MarkInput) {
-                System.out.println("MarkInput on LS");
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;

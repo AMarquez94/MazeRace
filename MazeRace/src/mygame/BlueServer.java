@@ -52,7 +52,7 @@ public class BlueServer extends SimpleApplication {
     private BulletAppState bas;
     private static ServerPlayer[] players;
     private String[] nicknames;
-    private int connectedPlayers;
+    private static int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
     private static Vector3f treasureLocation;
@@ -65,7 +65,7 @@ public class BlueServer extends SimpleApplication {
     private static HashMap<String, Integer> nicknameToId = new HashMap<String, Integer>();
     //game state
     private static ServerGameState state;
-    private Node shootables;
+    private static Node shootables;
 
     //
     public static void main(String[] args) {
@@ -184,7 +184,7 @@ public class BlueServer extends SimpleApplication {
     /*
      * Connects a player and returns its id
      */
-    private void connectPlayer(String nickname, HostedConnection s, int id) {
+    private static void connectPlayer(String nickname, HostedConnection s, int id) {
         players[id] = new ServerPlayer(id, Team.Blue, initialPositions[id],
                 nickname, app);
 
@@ -291,6 +291,8 @@ public class BlueServer extends SimpleApplication {
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         //Set up the character. TODO does not include orientation (maybe not needed)
+                        while (!nicknameToId.containsKey(nickname)) {
+                        }
                         int idNew = nicknameToId.get(nickname);
 //                        int idNew = 0;
                         connectPlayer(nickname, source, idNew);
@@ -336,7 +338,6 @@ public class BlueServer extends SimpleApplication {
 
         private void actionMarkInput(final HostedConnection source, final Message m) {
             if (m instanceof MarkInput) {
-                System.out.println("BlueServer: Got Mark Input");
                 MarkInput message = (MarkInput) m;
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
@@ -560,21 +561,10 @@ public class BlueServer extends SimpleApplication {
                 changeGameState(ServerGameState.GameRunning);
                 server.broadcast(new Start());
             } else if (m instanceof PutMark) {
-                System.out.println("BlueServer: Message Mark");
                 PutMark message = (PutMark) m;
                 server.broadcast(Filters.in(hostedConnections),
                         new PutMark(Team.Red, message.getPosition()));
-            } else if (m instanceof NewPlayerConnected) {
-                NewPlayerConnected message = (NewPlayerConnected) m;
-                int idNew = message.getId();
-                server.broadcast(Filters.in(hostedConnections),
-                        new NewPlayerConnected(idNew, players[idNew].getNickname(),
-                        players[idNew].getTeam(), players[idNew].getPosition()));
-                server.broadcast(Filters.in(hostedConnections),
-                        packPrepareMessage());
-                server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
             }
-            //#TODO implement here NewConnection
         }
     }
 
@@ -582,10 +572,19 @@ public class BlueServer extends SimpleApplication {
 
         public void messageReceived(HostedConnection source, Message m) {
             if (m instanceof PutMark) {
-                System.out.println("BlueServer: Message Mark");
                 PutMark message = (PutMark) m;
                 server.broadcast(Filters.in(hostedConnections),
                         new PutMark(Team.Red, message.getPosition()));
+            } else if (m instanceof NewPlayerConnected) {
+                NewPlayerConnected message = (NewPlayerConnected) m;
+                int idNew = message.getId();
+                connectPlayer(message.getNickname(), source, idNew);
+                server.broadcast(Filters.in(hostedConnections),
+                        new NewPlayerConnected(idNew, players[idNew].getNickname(),
+                        players[idNew].getTeam(), players[idNew].getPosition()));
+                server.broadcast(Filters.in(hostedConnections),
+                        packPrepareMessage());
+                server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
             }
         }
     }

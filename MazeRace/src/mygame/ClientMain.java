@@ -161,7 +161,6 @@ public class ClientMain extends SimpleApplication {
 
         //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
-        bas.getPhysicsSpace().enableDebug(assetManager);
         setUpGraph();
         setUpLight();
         setUpKeys();
@@ -1019,6 +1018,9 @@ public class ClientMain extends SimpleApplication {
                     app.enqueue(new Callable() {
                         public Object call() throws Exception {
                             setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), false);
+                            if(message.getPosition().distance(getPlayer().getPosition())>Player.VIEW_DISTANCE){
+                                players.get(message.getId()).show(false);
+                            }
                             return null;
                         }
                     });
@@ -1229,6 +1231,9 @@ public class ClientMain extends SimpleApplication {
                             public Object call() throws Exception {
                                 //Set up the character. TODO does not include orientation (maybe not needed)
                                 setUpCharacter(id, teams[id], positions[id], nicknames[id], false);
+                                if(positions[id].distance(getPlayer().getPosition())>Player.VIEW_DISTANCE){
+                                    players.get(id).show(false);
+                                }
                                 return null;
                             }
                         });
@@ -1245,6 +1250,24 @@ public class ClientMain extends SimpleApplication {
                     public Object call() throws Exception {
                         
                         putMessage(senderId,sentMessage);
+                        return null;
+                    }
+                });
+            } else if (m instanceof ShowMessage){
+                
+                final ShowMessage message = (ShowMessage) m;
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        
+                        if(message.isShow()){
+                            System.out.println("Showing");
+                            players.get(message.getIdPlayer()).show(true);
+                        }
+                        else{
+                            System.out.println("Stop showing");
+                            players.get(message.getIdPlayer()).show(false);
+                        }
                         return null;
                     }
                 });

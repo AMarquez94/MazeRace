@@ -22,6 +22,7 @@ import com.jme3.system.JmeContext;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import enums.ServerGameState;
 import enums.Team;
+import gameobjects.Player;
 import gameobjects.ServerPlayer;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -66,6 +67,8 @@ public class ServerMain extends SimpleApplication {
     //game state
     private static ServerGameState state;
     private Node shootables;
+    //players being seen
+    private boolean[][] seen;
 
     //
     public static void main(String[] args) {
@@ -124,8 +127,8 @@ public class ServerMain extends SimpleApplication {
         this.pauseOnFocus = false;
         shootables = new Node("Shootables");
         rootNode.attachChild(shootables);
-
-
+        
+        seen = new boolean[MAX_PLAYERS][MAX_PLAYERS];
 
         new ServerControl(this);
 
@@ -163,6 +166,7 @@ public class ServerMain extends SimpleApplication {
                     ServerControlLogin.changeServerState(ServerGameState.GameStopped);
                     sendMessage(Filters.in(hostedConnections), new End(p.getTeam()));
                 }
+                checkOtherPlayers(p);
             }
         }
     }
@@ -185,7 +189,7 @@ public class ServerMain extends SimpleApplication {
     }
 
     public static Vector3f getSpawnZonePoint(Team team) {
-        if (team == Team.Red) {
+        if (team == Team.Blue) {
             return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
         } else {
             return new Vector3f(8.813507f, -100.00002f, 250.53908f);
@@ -296,6 +300,25 @@ public class ServerMain extends SimpleApplication {
             } else {
                 redPlayers++;
                 return Team.Red;
+            }
+        }
+    }
+    
+    private void checkOtherPlayers(ServerPlayer p){
+        for(int i = 0; i < MAX_PLAYERS; i++){
+            if(p!=null & players[i]!=null && p!=players[i]){
+                if(p.getPosition().distance(players[i].getPosition()) < Player.VIEW_DISTANCE){
+                    if(!seen[p.getId()][i]){
+                        seen[p.getId()][i] = true;
+                        sendMessage(Filters.in(hostedConnections[p.getId()]), new ShowMessage(true,i));
+                        
+                    }
+                } else{
+                    if(seen[p.getId()][i]){
+                        seen[p.getId()][i] = false;
+                        sendMessage(Filters.in(hostedConnections[p.getId()]), new ShowMessage(false,i));
+                    }
+                }
             }
         }
     }

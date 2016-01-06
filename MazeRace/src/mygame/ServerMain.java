@@ -48,7 +48,7 @@ public class ServerMain extends SimpleApplication {
     protected final static int DAMAGE_BULLET = 25;
     //GLOBAL VARIABLES
     private static Server server;
-    private LinkedBlockingQueue<ServerMessage> messageQueue;
+    private static LinkedBlockingQueue<ServerMessage> messageQueue;
     private HostedConnection[] hostedConnections;
     private ArrayList<HostedConnection> redPlayersCon;
     private ArrayList<HostedConnection> bluePlayersCon;
@@ -128,13 +128,14 @@ public class ServerMain extends SimpleApplication {
         //networking
         messageQueue = new LinkedBlockingQueue<ServerMessage>();
         Thread t = new Thread(new Sender());
+        t.start();
     }
 
     @Override
     public void simpleUpdate(float tpf) {
         for (int i = 0; i < timeouts.length; i++) {
             if (timeouts[i] != 0) {
-                System.out.println("Timeout " + i + " : " + timeouts[i]);
+                //System.out.println("Timeout " + i + " : " + timeouts[i]);
                 timeouts[i] = timeouts[i] - tpf;
                 if (timeouts[i] <= 0) {
                     disconnectPlayer(i);
@@ -144,7 +145,7 @@ public class ServerMain extends SimpleApplication {
         if (state == ServerGameState.GameStopped) {
             //Send a Prepare every second. TODO implement this better.
             if (periodic_threshold > 1) {
-                server.broadcast(Filters.in(hostedConnections), packPrepareMessage());
+                sendMessage(Filters.in(hostedConnections), packPrepareMessage());
                 periodic_threshold = 0;
             } else {
                 periodic_threshold++;
@@ -152,14 +153,18 @@ public class ServerMain extends SimpleApplication {
         } else if (state == ServerGameState.GameRunning) {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
-                    server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
+                    sendMessage(Filters.in(hostedConnections), new End(p.getTeam()));
                     ServerControl.changeServerState(ServerGameState.GameStopped);
                 }
             }
         }
     }
 
-    private void sendMessage(Filter<HostedConnection> filter, AbstractMessage message) {
+    private static void sendMessage(AbstractMessage message) {
+        messageQueue.add(new ServerMessage(null, message));
+    }
+
+    private static void sendMessage(Filter<HostedConnection> filter, AbstractMessage message) {
         messageQueue.add(new ServerMessage(filter, message));
     }
 
@@ -238,7 +243,7 @@ public class ServerMain extends SimpleApplication {
         connectedPlayers--;
         shootables.detachChild(players[id]);
         players[id] = null;
-        server.broadcast(Filters.in(hostedConnections), new DisconnectedPlayer(id));
+        sendMessage(Filters.in(hostedConnections), new DisconnectedPlayer(id));
         timeouts[id] = 0;
     }
 
@@ -315,11 +320,18 @@ public class ServerMain extends SimpleApplication {
                         }
                     }
 
+                    //send packets
                     while (!messageQueue.isEmpty()) {
                         ServerMessage message = messageQueue.poll();
-                        server.broadcast(message.filter, message.message); //send packet
+                        
+                        if (message.filter != null) {
+                            server.broadcast(message.filter, message.message);
+                        } else {
+                            server.broadcast(message.message);
+                        }
                     }
 
+                    //debug
                     if (timeout) {
                         System.out.println("Messages sent by timeout.");
                     } else {
@@ -394,6 +406,7 @@ public class ServerMain extends SimpleApplication {
         }
 
         private void actionConnect(final HostedConnection source, final Message m) {
+            System.out.println("Connect request received");
             if (m instanceof Connect) {
                 Connect message = (Connect) m;
                 final String nickname = message.getNickname();
@@ -406,30 +419,30 @@ public class ServerMain extends SimpleApplication {
                                     public Object call() throws Exception {
                                         //Set up the character. TODO does not include orientation (maybe not needed)
                                         int idNew = connectPlayer(nickname, source);
-                                        server.broadcast(Filters.in(hostedConnections),
+                                        sendMessage(Filters.in(hostedConnections),
                                                 new NewPlayerConnected(idNew, players[idNew].getNickname(),
                                                 players[idNew].getTeam(), players[idNew].getPosition()));
-                                        server.broadcast(Filters.in(hostedConnections),
+                                        sendMessage(Filters.in(hostedConnections),
                                                 packPrepareMessage());
-                                        server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                                        sendMessage(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
                                         return null;
                                     }
                                 });
 
                             } else {
-                                server.broadcast(Filters.equalTo(source),
+                                sendMessage(Filters.equalTo(source),
                                         new ConnectionRejected("Nickname already in use"));
                             }
                         } else {
-                            server.broadcast(Filters.equalTo(source),
+                            sendMessage(Filters.equalTo(source),
                                     new ConnectionRejected("Bad nickname"));
                         }
                     } else {
-                        server.broadcast(Filters.equalTo(source),
+                        sendMessage(Filters.equalTo(source),
                                 new ConnectionRejected("Maximum number of clients already connected"));
                     }
                 } else {
-                    server.broadcast(Filters.equalTo(source),
+                    sendMessage(Filters.equalTo(source),
                             new ConnectionRejected("Game has already started"));
                 }
             }
@@ -452,7 +465,7 @@ public class ServerMain extends SimpleApplication {
                     public Object call() throws Exception {
                         players[id].setPosition(position);
                         players[id].setOrientation(arrayToQuaternion(rotation));
-                        server.broadcast(Filters.in(hostedConnections),
+                        sendMessage(Filters.in(hostedConnections),
                                 new MovingPlayers(id, position, rotation, orientation, animation));
                         return null;
                     }
@@ -479,7 +492,7 @@ public class ServerMain extends SimpleApplication {
 
                             if (results.size() > 0) {
                                 CollisionResult closest = results.getClosestCollision();
-                                server.broadcast(Filters.in(hostedConnections),
+                                sendMessage(Filters.in(hostedConnections),
                                         new PutMark(players[id].getTeam(), closest.getContactPoint()));
                             }
                         }
@@ -514,19 +527,19 @@ public class ServerMain extends SimpleApplication {
                                     if (dead) {
                                         players[shooted].setDead(true);
 
-                                        server.broadcast(Filters.in(hostedConnections),
+                                        sendMessage(Filters.in(hostedConnections),
                                                 new DeadPlayer(shooted, id));
 
                                         if (players[shooted].getHasTreasure()) {
                                             treasureLocation = players[shooted].getWorldTranslation();
                                             treasureLocation.setY(-100f); // to prevent floating treasure
 
-                                            server.broadcast(Filters.in(hostedConnections),
+                                            sendMessage(Filters.in(hostedConnections),
                                                     new TreasureDropped(treasureLocation));
                                             players[shooted].setHasTreasure(false);
                                         }
                                     } else {
-                                        server.broadcast(Filters.in(hostedConnections),
+                                        sendMessage(Filters.in(hostedConnections),
                                                 new PlayerShooted(shooted, id, players[shooted].getHealth()));
                                     }
                                 }
@@ -541,7 +554,7 @@ public class ServerMain extends SimpleApplication {
                  */
 
                 //send message to tell clients that shot is fired
-                server.broadcast(new Firing(id));
+                sendMessage(new Firing(id));
             }
         }
 
@@ -554,7 +567,7 @@ public class ServerMain extends SimpleApplication {
 
 
                 //temporarily always allow pickup TODO
-                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
+                sendMessage(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
                 //TODO set to false for other players
             }
@@ -567,7 +580,7 @@ public class ServerMain extends SimpleApplication {
             players[id].setHealth(MAX_HEALTH);
             players[id].setPosition(initialPositions[id]);
 
-            server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
+            sendMessage(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
         }
 
         private void actionSendMessage(final HostedConnection source, final Message m) {
@@ -577,9 +590,9 @@ public class ServerMain extends SimpleApplication {
                 final int id = findId(source);
 
                 if (players[id].getTeam() == Team.Blue) {
-                    server.broadcast(Filters.in(bluePlayersCon), new BroadcastMessage(id, message.getMessage()));
+                    sendMessage(Filters.in(bluePlayersCon), new BroadcastMessage(id, message.getMessage()));
                 } else {
-                    server.broadcast(Filters.in(redPlayersCon), new BroadcastMessage(id, message.getMessage()));
+                    sendMessage(Filters.in(redPlayersCon), new BroadcastMessage(id, message.getMessage()));
                 }
             }
         }
@@ -592,7 +605,7 @@ public class ServerMain extends SimpleApplication {
     protected static void changeGameState(ServerGameState newState) {
         if (!(state == newState)) {
             if (newState == ServerGameState.GameRunning) {
-                server.broadcast(new Start());
+                sendMessage(new Start());
             } else if (newState == ServerGameState.GameStopped) {
             }
 

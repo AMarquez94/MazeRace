@@ -58,6 +58,8 @@ public class Player extends Node {
     private ParticleEmitter flash;
     private static final int COUNT_FACTOR = 1;
     private static final float COUNT_FACTOR_F = 1f;
+    //Other
+    public static final int VIEW_DISTANCE = 200;
 
     private static final boolean POINT_SPRITE = true;
     private static final ParticleMesh.Type EMITTER_TYPE = POINT_SPRITE ? ParticleMesh.Type.Point : ParticleMesh.Type.Triangle;
@@ -328,14 +330,14 @@ public class Player extends Node {
     public void aimGun(Vector3f direction){
         
         pivot_gun.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.asin(direction.y),new Vector3f(1,0,0)));
-//        float x = 0;
-        
-//        characterControl.getViewDirection()
-        
-        
-        
-        
-        
-        //pivot_gun.getLocalRotation().lookAt(0,direction.y,FastMath.abs(direction.z)), Vector3f.UNIT_Y);
+    }
+    
+    public void show(boolean show){
+        if(show && this.health>0){
+            this.setCullHint(CullHint.Never);
+        }
+        else{
+            this.setCullHint(CullHint.Always);
+        }
     }
 }

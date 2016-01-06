@@ -20,6 +20,7 @@ public class ServerPlayer extends Node{
     //Objects
 
     private Node player;
+    private int id;
     //Player attributes
     private Team team;
     private Vector3f position;
@@ -34,6 +35,7 @@ public class ServerPlayer extends Node{
 
     public ServerPlayer(int id, Team team, Vector3f position, String nickname,
             SimpleApplication app) {
+        this.id = id;
         this.team = team;
         this.position = position;
         this.nickname = nickname;
@@ -148,5 +150,9 @@ public class ServerPlayer extends Node{
     
     public void setHasTreasure(boolean hasTreasure) {
         this.hasTreasure = hasTreasure;
+    }
+    
+    public int getId(){
+        return this.id;
     }
 }

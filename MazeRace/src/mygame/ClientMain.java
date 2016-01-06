@@ -55,6 +55,7 @@ import java.util.logging.Logger;
 import maze.Maze;
 import mygame.Networking.*;
 import static gameobjects.Player.*;
+import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import maze.Treasure;
 import static mygame.ServerMain.*;
@@ -137,7 +138,7 @@ public class ClientMain extends SimpleApplication {
     public void simpleInitApp() {
         state = ClientGameState.NicknameScreen;
         Networking.initialiseSerializables();
-        
+
         //flyCam.setEnabled(false);
         setUpNetworking();
         this.pauseOnFocus = false;
@@ -171,7 +172,7 @@ public class ClientMain extends SimpleApplication {
         for (int i = 0; i < 4; i++) {
             shootIndicator[i] = new Node();
         }
-        
+
         tmpQuat = new Quaternion();
     }
 
@@ -218,12 +219,11 @@ public class ClientMain extends SimpleApplication {
         //TODO remove avatar from the scene graph
     }
 
-    
     private void setUpNetworking() {
         //Start connection to login server
         try {
-            String ip = JOptionPane.showInputDialog("Insert IP address to connect",Networking.HOST_LOGIN);
-            String port = JOptionPane.showInputDialog("Insert port number to connect",Networking.PORT_LOGIN);
+            String ip = JOptionPane.showInputDialog("Insert IP address to connect", Networking.HOST_LOGIN);
+            String port = JOptionPane.showInputDialog("Insert port number to connect", Networking.PORT_LOGIN);
             int portNumber = Integer.parseInt(port);
             client = Network.connectToServer(ip, portNumber);
             client.start();
@@ -343,8 +343,8 @@ public class ClientMain extends SimpleApplication {
                 } else if (name.equals("Pos") && !keyPressed) {
                     System.out.println(getPlayer().getWorldTranslation());
                     //System.out.println(cam.getDirection());
-                    
-                } else if(name.equals("Chat") && !keyPressed){
+
+                } else if (name.equals("Chat") && !keyPressed) {
                     message.setText("");
                     chatString = "";
                     counter = 0;
@@ -360,7 +360,7 @@ public class ClientMain extends SimpleApplication {
 
                     sendMessage(new WantToRespawn());
                 }
-            } else if(state == ClientGameState.Chat){
+            } else if (state == ClientGameState.Chat) {
                 if (name.equals("Chat") && !keyPressed) {
                     state = ClientGameState.GameRunning;
                     sendMessage(new SendMessage(chatString));
@@ -557,27 +557,27 @@ public class ClientMain extends SimpleApplication {
                 }
 
                 /* This is used to limit the updown of the camera */
-                
-                float[] angles=new float[3];
+
+                float[] angles = new float[3];
 
                 cam.getRotation().toAngles(angles);
 
                 //check the x rotation
 
-                if(angles[0] >= FastMath.QUARTER_PI - 0.1f){
+                if (angles[0] >= FastMath.QUARTER_PI - 0.1f) {
 
-                    angles[0]=FastMath.QUARTER_PI - 0.1f;
+                    angles[0] = FastMath.QUARTER_PI - 0.1f;
 
                     cam.setRotation(tmpQuat.fromAngles(angles));
 
-                }else if(angles[0] <= -FastMath.QUARTER_PI + 0.1f){
+                } else if (angles[0] <= -FastMath.QUARTER_PI + 0.1f) {
 
-                    angles[0]=-FastMath.QUARTER_PI + 0.1f;
+                    angles[0] = -FastMath.QUARTER_PI + 0.1f;
 
                     cam.setRotation(tmpQuat.fromAngles(angles));
 
                 }
-                
+
                 getPlayer().walkDirection.multLocal(MOVE_SPEED).multLocal(tpf);// The use of the first multLocal here is to control the rate of movement multiplier for character walk speed. The second one is to make sure the character walks the same speed no matter what the frame rate is.
 
                 getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection); // THIS IS WHERE THE WALKING HAPPENS
@@ -587,31 +587,31 @@ public class ClientMain extends SimpleApplication {
                 getPlayer().setPosition(player_pos);
                 //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
                 cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
-                
+
                 listener.setLocation(cam.getLocation());
                 listener.setRotation(cam.getRotation());
-                
+
                 //send new state to server TODO: rotation
                 sendMessage(new PlayerMoved(getPlayer().getPosition(),
                         quaternionToArray(getPlayer().getWorldRotation()),
                         getPlayer().getCharacterControl().getViewDirection(),
                         getPlayer().getAnimChannel().getAnimationName()));
-                
-                if(chatEnabled){
+
+                if (chatEnabled) {
                     chatTimeout = chatTimeout - tpf;
-                    if(chatTimeout < 0){
+                    if (chatTimeout < 0) {
                         chatEnabled = false;
                         chatTimeout = CHAT_SECONDS;
-                        for(int i = 0; i < chat.length; i++){
-                            if(!chat[i].getText().equals("")){
+                        for (int i = 0; i < chat.length; i++) {
+                            if (!chat[i].getText().equals("")) {
                                 chat[i].setText("");
                                 chatBackground[i].setCullHint(CullHint.Always);
                             }
                         }
                     }
                 }
-                
-                
+
+
             }
             for (int i = 0; i < shooted.length; i++) {
                 if (shooted[i]) {
@@ -623,48 +623,48 @@ public class ClientMain extends SimpleApplication {
                         shootIndicator[i].setCullHint(CullHint.Always);
                     }
                 }
-                
+
                 sendMessage(new Alive());
             }
         } else if (state == ClientGameState.GameStopped) {
             Vector3f player_pos = getPlayer().getWorldTranslation();
             cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
             sendMessage(new Alive());
-            
-        } else if(state == ClientGameState.Chat){
-            
-                up = false;
-                down = false;
-                right = false;
-                left = false;
-                
-                Vector3f camDir = cam.getDirection().clone();
-                Vector3f camLeft = cam.getLeft().clone();
-                camDir.y = 0;
-                camLeft.y = 0;
-                camDir.normalizeLocal();
-                camLeft.normalizeLocal();
-                getPlayer().walkDirection.set(0, 0, 0);
-                getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection);
-                Vector3f player_pos = getPlayer().getWorldTranslation();
-                getPlayer().setPosition(player_pos);
-                cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
 
-                counter += tpf;
-                if (counter > 0.5f) {
-                    message.setText(chatString + "|");
-                    if (counter > 1f) {
-                        counter = 0;
-                    }
-                } else {
-                    message.setText(chatString);
+        } else if (state == ClientGameState.Chat) {
+
+            up = false;
+            down = false;
+            right = false;
+            left = false;
+
+            Vector3f camDir = cam.getDirection().clone();
+            Vector3f camLeft = cam.getLeft().clone();
+            camDir.y = 0;
+            camLeft.y = 0;
+            camDir.normalizeLocal();
+            camLeft.normalizeLocal();
+            getPlayer().walkDirection.set(0, 0, 0);
+            getPlayer().getCharacterControl().setWalkDirection(getPlayer().walkDirection);
+            Vector3f player_pos = getPlayer().getWorldTranslation();
+            getPlayer().setPosition(player_pos);
+            cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
+
+            counter += tpf;
+            if (counter > 0.5f) {
+                message.setText(chatString + "|");
+                if (counter > 1f) {
+                    counter = 0;
                 }
-                
-                sendMessage(new PlayerMoved(getPlayer().getPosition(),
-                        quaternionToArray(getPlayer().getWorldRotation()),
-                        getPlayer().getCharacterControl().getViewDirection(),
-                        getPlayer().getAnimChannel().getAnimationName()));
-       }
+            } else {
+                message.setText(chatString);
+            }
+
+            sendMessage(new PlayerMoved(getPlayer().getPosition(),
+                    quaternionToArray(getPlayer().getWorldRotation()),
+                    getPlayer().getCharacterControl().getViewDirection(),
+                    getPlayer().getAnimChannel().getAnimationName()));
+        }
     }
 
     @Override
@@ -695,19 +695,15 @@ public class ClientMain extends SimpleApplication {
             long timer; //declare timer
             Aggregation message; //declare aggregation packet
 
-            boolean timeout; //for debug. for printing send reason
-
             while (QUORUM > 0) { //loop forever
                 if (messageQueue.size() > 0) { //wait until update is available
                     message = new Aggregation(); //create an empty packet
                     message.addMessage(messageQueue.poll()); //add update to packet
                     timer = System.currentTimeMillis(); //set timer
-                    timeout = false; //for debug
 
                     quorum_loop:
                     while (message.getSize() < QUORUM) { //while quorum is not reached
                         if (System.currentTimeMillis() - timer > TIMEOUT) { //check for timeout
-                            timeout = true;
                             break quorum_loop;
                         } else if (messageQueue.size() > 0) { // else wait for more updates
                             message.addMessage(messageQueue.poll()); //add update to packet
@@ -715,14 +711,6 @@ public class ClientMain extends SimpleApplication {
                     }
 
                     client.send(message); //send packet
-
-                    //for debug
-                   // if(timeout) System.out.println("TIMEOUT amount of messages: " + message.getSize()); else System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/"+ TIMEOUT);
-                    if (timeout) {
-                        System.out.println("TIMEOUT amount of messages: " + message.getSize());
-                    } else {
-//                        System.out.println("QUORUM time left: " + (System.currentTimeMillis() - timer) + "/" + TIMEOUT);
-                    }
                 }
             }
         }
@@ -779,89 +767,86 @@ public class ClientMain extends SimpleApplication {
                 settings.getHeight() / 2 + (deadPlayerText.getHeight() / 2), 0);
         ch.setText("");
     }
-    
-    private void initChatHUD(){
+
+    private void initChatHUD() {
         Material matBackground = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
-        matBackground.setColor("Color", new ColorRGBA(0,0,0,0.8f));
+        matBackground.setColor("Color", new ColorRGBA(0, 0, 0, 0.8f));
         matBackground.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-        
-        messageBackground = new Geometry("message", new Quad(WIDTH,HEIGHT));
+
+        messageBackground = new Geometry("message", new Quad(WIDTH, HEIGHT));
         messageBackground.setMaterial(matBackground);
-        messageBackground.setLocalTranslation(LOCATION_X,LOCATION_Y,0);
+        messageBackground.setLocalTranslation(LOCATION_X, LOCATION_Y, 0);
         messageBackground.setCullHint(CullHint.Always);
-        
+
         message = new BitmapText(guiFont);
         message.setLocalTranslation(LOCATION_X, LOCATION_Y + TEXT_HEIGHT, 0);
         //66 caracteres max
         message.setText("");
-        
+
         chatBackground = new Geometry[MAX_MESSAGES];
         chat = new BitmapText[MAX_MESSAGES];
-        for(int i = 0; i < chatBackground.length; i++){
-            chatBackground[i] = new Geometry("chat " + i, new Quad(WIDTH,HEIGHT));
+        for (int i = 0; i < chatBackground.length; i++) {
+            chatBackground[i] = new Geometry("chat " + i, new Quad(WIDTH, HEIGHT));
             chatBackground[i].setMaterial(matBackground);
-            chatBackground[i].setLocalTranslation(LOCATION_X, 
-                    settings.getHeight()/2-HEIGHT/2 + i*HEIGHT,0);
+            chatBackground[i].setLocalTranslation(LOCATION_X,
+                    settings.getHeight() / 2 - HEIGHT / 2 + i * HEIGHT, 0);
             chatBackground[i].setCullHint(CullHint.Always);
             guiNode.attachChild(chatBackground[i]);
-            
+
             chat[i] = new BitmapText(guiFont);
-            chat[i].setLocalTranslation(LOCATION_X,  
-                    settings.getHeight()/2-HEIGHT/2 + TEXT_HEIGHT + i*HEIGHT, 0);
+            chat[i].setLocalTranslation(LOCATION_X,
+                    settings.getHeight() / 2 - HEIGHT / 2 + TEXT_HEIGHT + i * HEIGHT, 0);
             guiNode.attachChild(chat[i]);
         }
-        
-        
+
+
         guiNode.attachChild(messageBackground);
         guiNode.attachChild(message);
     }
-    
-    public void putMessage(int senderId, String message){
-        
+
+    public void putMessage(int senderId, String message) {
+
         boolean free = false;
         int i = 0;
-        while(i < chat.length && !free){
-            if(!chat[i].getText().equals("")){
+        while (i < chat.length && !free) {
+            if (!chat[i].getText().equals("")) {
                 i++;
-            }
-            else{
+            } else {
                 free = true;
             }
         }
-        
-        if(free){
-            
+
+        if (free) {
+
             /* There is space in the chat queue */
-            if(i == 0){
-                
+            if (i == 0) {
+
                 /* First message */
                 chatBackground[i].setCullHint(CullHint.Inherit);
                 chat[i].setText("(" + players.get(senderId).getNickname() + "): " + message);
-            }
-            
-            else{
-                
-                for(int j = i; j > 0; j--){
+            } else {
+
+                for (int j = i; j > 0; j--) {
                     chatBackground[j].setCullHint(CullHint.Inherit);
-                    chat[j].setText(chat[j-1].getText());
+                    chat[j].setText(chat[j - 1].getText());
                 }
                 chat[0].setText("(" + players.get(senderId).getNickname() + "): " + message);
             }
-        } else{
-            
+        } else {
+
             /* There is no space in the chat queue -> We delete the oldest */
-            for(int j = chat.length-1; j > 0; j--){
+            for (int j = chat.length - 1; j > 0; j--) {
                 chatBackground[j].setCullHint(CullHint.Inherit);
-                chat[j].setText(chat[j-1].getText());
+                chat[j].setText(chat[j - 1].getText());
             }
             chat[0].setText("(" + players.get(senderId).getNickname() + "): " + message);
         }
-        
+
         chatEnabled = true;
         chatTimeout = CHAT_SECONDS;
     }
-    
+
     private Quaternion arrayToQuaternion(float[] r) {
         return new Quaternion(r[0], r[1], r[2], r[3]);
     }
@@ -912,7 +897,7 @@ public class ClientMain extends SimpleApplication {
         public void onTouchEvent(TouchEvent evt) {
         }
     }
-    
+
     public class ChatListener implements RawInputListener {
 
         public void beginInput() {
@@ -940,13 +925,13 @@ public class ClientMain extends SimpleApplication {
                         chatString = chatString.substring(0, chatString.length() - 1);
                     }
                     message.setText(chatString + "|");
-                    
+
                 } else {
-                    if(chatString.length()<60){
+                    if (chatString.length() < 60) {
                         chatString = chatString + evt.getKeyChar();
                         message.setText(chatString + "|");
                     }
-                   
+
                 }
             }
         }
@@ -958,7 +943,23 @@ public class ClientMain extends SimpleApplication {
     private class NetworkMessageListener implements MessageListener<Client> {
 
         public void messageReceived(Client source, Message m) {
+            if (!(m instanceof Aggregation)) {
+                System.out.println("Cannot process message!!");
+            }
 
+            final Aggregation aggregation = (Aggregation) m;
+            //get messages
+            ArrayList<AbstractMessage> messages = aggregation.getMessages();
+
+            //process messages
+            for (final AbstractMessage message : messages) {
+                if (message != null) {
+                    processAggregation(source, message);
+                }
+            }
+        }
+
+        public void processAggregation(Client source, Message m) {
             if (m instanceof ConnectServer) {
                 ConnectServer message = (ConnectServer) m;
                 final String ip = message.getIp();
@@ -1018,7 +1019,7 @@ public class ClientMain extends SimpleApplication {
                     app.enqueue(new Callable() {
                         public Object call() throws Exception {
                             setUpCharacter(message.getId(), message.getTeam(), message.getPosition(), message.getNickname(), false);
-                            if(message.getPosition().distance(getPlayer().getPosition())>Player.VIEW_DISTANCE){
+                            if (message.getPosition().distance(getPlayer().getPosition()) > Player.VIEW_DISTANCE) {
                                 players.get(message.getId()).show(false);
                             }
                             return null;
@@ -1117,8 +1118,8 @@ public class ClientMain extends SimpleApplication {
                             deadPlayerHUD(idShooting);
                             state = ClientGameState.Dead;
                         }
-                        
-                        Explosion e = new Explosion(players.get(idShooted).getLocalTranslation(),assetManager,app);
+
+                        Explosion e = new Explosion(players.get(idShooted).getLocalTranslation(), assetManager, app);
                         renderManager.preloadScene(e);
                         rootNode.attachChild(e);
                         e.start();
@@ -1231,7 +1232,7 @@ public class ClientMain extends SimpleApplication {
                             public Object call() throws Exception {
                                 //Set up the character. TODO does not include orientation (maybe not needed)
                                 setUpCharacter(id, teams[id], positions[id], nicknames[id], false);
-                                if(positions[id].distance(getPlayer().getPosition())>Player.VIEW_DISTANCE){
+                                if (positions[id].distance(getPlayer().getPosition()) > Player.VIEW_DISTANCE) {
                                     players.get(id).show(false);
                                 }
                                 return null;
@@ -1239,32 +1240,31 @@ public class ClientMain extends SimpleApplication {
                         });
                     }
                 }
-            } else if (m instanceof BroadcastMessage){
-                
+            } else if (m instanceof BroadcastMessage) {
+
                 final BroadcastMessage message = (BroadcastMessage) m;
-                
+
                 final int senderId = message.getId();
                 final String sentMessage = message.getMessage();
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        
-                        putMessage(senderId,sentMessage);
+
+                        putMessage(senderId, sentMessage);
                         return null;
                     }
                 });
-            } else if (m instanceof ShowMessage){
-                
+            } else if (m instanceof ShowMessage) {
+
                 final ShowMessage message = (ShowMessage) m;
-                
+
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
-                        
-                        if(message.isShow()){
+
+                        if (message.isShow()) {
                             System.out.println("Showing");
                             players.get(message.getIdPlayer()).show(true);
-                        }
-                        else{
+                        } else {
                             System.out.println("Stop showing");
                             players.get(message.getIdPlayer()).show(false);
                         }
@@ -1272,6 +1272,7 @@ public class ClientMain extends SimpleApplication {
                     }
                 });
             }
+
         }
     }
 }

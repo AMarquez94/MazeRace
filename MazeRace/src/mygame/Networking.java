@@ -57,6 +57,7 @@ public class Networking {
         Serializer.registerClass(SendMessage.class);
         Serializer.registerClass(BroadcastMessage.class);
         Serializer.registerClass(ShowMessage.class);
+        Serializer.registerClass(Restart.class);
     }
 
     /**
@@ -771,7 +772,7 @@ public class Networking {
         }
     }
     
-     /**
+    /**
      * Server -> Client
      * Server sends to the client that he has to start culling player with id "id"
      * if "show" is true. Otherwise, he has to stop culling him.
@@ -798,4 +799,27 @@ public class Networking {
             return idPlayer;
         }
     }
+    
+    /**
+     * Server -> Clients 
+     * Server says to the clients that they have to restart the game
+     */
+    @Serializable
+    public static class Restart extends AbstractMessage {
+
+        private Vector3f[] positions;
+
+        public Restart() {
+        }
+
+        public Restart(Vector3f[] positions) {
+            this.positions = positions;
+        }
+
+        public Vector3f[] getPositions() {
+            return positions;
+        }
+    }
+    
+    
 }

@@ -185,7 +185,7 @@ public class BlueServer extends SimpleApplication {
      * Connects a player and returns its id
      */
     private static void connectPlayer(String nickname, Team team, HostedConnection s, int id) {
-        players[id] = new ServerPlayer(id, team, initialPositions[id],
+        players[id] = new ServerPlayer(id, team, initialPositions[id % MAX_PLAYERS / 2],
                 nickname, app);
 
         //players[i].addToPhysicsSpace(bas);
@@ -200,11 +200,11 @@ public class BlueServer extends SimpleApplication {
             //team 1 (color?)
             initialPositions[0] = new Vector3f(0.74115396f, -100.0f, -245.33556f);
             initialPositions[1] = new Vector3f(4.69698f, -100.0f, -245.20134f);
-            initialPositions[4] = new Vector3f(8.940145f, -100.0f, -245.1395f);
+            initialPositions[2] = new Vector3f(8.940145f, -100.0f, -245.1395f);
 
             // team 2 (color?)
-            initialPositions[2] = new Vector3f(-1.7150712f, -100.0f, 241.41965f);
-            initialPositions[3] = new Vector3f(-6.002777f, -100.0f, 241.66374f);
+            initialPositions[3] = new Vector3f(-1.7150712f, -100.0f, 241.41965f);
+            initialPositions[4] = new Vector3f(-6.002777f, -100.0f, 241.66374f);
             initialPositions[5] = new Vector3f(-12.222459f, -100.0f, 242.18967f);
         } catch (Exception e) {
             System.out.println(e);
@@ -448,10 +448,10 @@ public class BlueServer extends SimpleApplication {
 
             players[id].setDead(false);
             players[id].setHealth(MAX_HEALTH);
-            players[id].setPosition(initialPositions[id]);
+            players[id].setPosition(initialPositions[id % MAX_PLAYERS / 2]);
 
-            server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
-            clientRedServer.send(new PlayerRespawn(id, initialPositions[id]));
+            server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id % MAX_PLAYERS / 2]));
+            clientRedServer.send(new PlayerRespawn(id, initialPositions[id % MAX_PLAYERS / 2]));
         }
     }
 
@@ -638,13 +638,13 @@ public class BlueServer extends SimpleApplication {
                 server.broadcast(Filters.in(hostedConnections), new TreasurePicked(message.getPlayerID()));
             } else if (m instanceof PlayerRespawn) {
                 PlayerRespawn message = (PlayerRespawn) m;
-                
+
                 int id = message.getPlayerRespawn();
                 Vector3f position = message.getPosition();
-                
+
                 players[id].setDead(false);
                 players[id].setHealth(MAX_HEALTH);
-                players[id].setPosition(initialPositions[id]);
+                players[id].setPosition(initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2]);
 
                 server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, position));
             }

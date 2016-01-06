@@ -1140,7 +1140,6 @@ public class ClientMain extends SimpleApplication {
                     }
                 });
             } else if (m instanceof PutMark) {
-                System.out.println("Recived PutMark");
                 final PutMark message = (PutMark) m;
 
                 app.enqueue(new Callable() {

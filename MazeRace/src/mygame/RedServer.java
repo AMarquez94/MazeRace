@@ -57,7 +57,7 @@ public class RedServer extends SimpleApplication {
     private int bluePlayers;
     private static Vector3f treasureLocation;
     private TerrainQuad terrain;
-    private float[] timeouts;
+    private static float[] timeouts;
     private static Vector3f[] initialPositions;
     private float periodic_threshold = 0; //temporary
     private static Client clientLoginServer;
@@ -184,8 +184,8 @@ public class RedServer extends SimpleApplication {
     /*
      * Connects a player and returns its id
      */
-    private static void connectPlayer(String nickname, HostedConnection s, int id) {
-        players[id] = new ServerPlayer(id, Team.Red, initialPositions[id],
+    private static void connectPlayer(String nickname, Team team, HostedConnection s, int id) {
+        players[id] = new ServerPlayer(id, team, initialPositions[id],
                 nickname, app);
         //players[i].addToPhysicsSpace(bas);
         hostedConnections[id] = s;
@@ -233,7 +233,7 @@ public class RedServer extends SimpleApplication {
         }
     }
 
-    private Quaternion arrayToQuaternion(float[] r) {
+    private static Quaternion arrayToQuaternion(float[] r) {
         return new Quaternion(r[0], r[1], r[2], r[3]);
     }
 
@@ -296,7 +296,7 @@ public class RedServer extends SimpleApplication {
                         }
                         int idNew = nicknameToId.get(nickname);
 //                        int idNew = 0;
-                        connectPlayer(nickname, source, idNew);
+                        connectPlayer(nickname, Team.Red, source, idNew);
                         server.broadcast(Filters.in(hostedConnections),
                                 new NewPlayerConnected(idNew, players[idNew].getNickname(),
                                 players[idNew].getTeam(), players[idNew].getPosition()));
@@ -329,8 +329,9 @@ public class RedServer extends SimpleApplication {
                     public Object call() throws Exception {
                         players[id].setPosition(position);
                         players[id].setOrientation(arrayToQuaternion(rotation));
-                        server.broadcast(Filters.in(hostedConnections),
-                                new MovingPlayers(id, position, rotation, orientation, animation));
+                        MovingPlayers sendMessage = new MovingPlayers(id, position, rotation, orientation, animation);
+                        server.broadcast(Filters.in(hostedConnections), sendMessage);
+                        clientBlueServer.send(sendMessage);
                         return null;
                     }
                 });
@@ -494,7 +495,7 @@ public class RedServer extends SimpleApplication {
         return new Prepare(positions, orientations, nickname, teams);
     }
 
-    private int findId(HostedConnection source) {
+    private static int findId(HostedConnection source) {
         int i = 0;
         boolean find = false;
         while (i < hostedConnections.length && !find) {
@@ -582,13 +583,30 @@ public class RedServer extends SimpleApplication {
             } else if (m instanceof NewPlayerConnected) {
                 NewPlayerConnected message = (NewPlayerConnected) m;
                 int idNew = message.getId();
-                connectPlayer(message.getNickname(), source, idNew);
+                connectPlayer(message.getNickname(), Team.Blue, source, idNew);
                 server.broadcast(Filters.in(hostedConnections),
                         new NewPlayerConnected(idNew, players[idNew].getNickname(),
                         players[idNew].getTeam(), players[idNew].getPosition()));
                 server.broadcast(Filters.in(hostedConnections),
                         packPrepareMessage());
                 server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+            } else if (m instanceof MovingPlayers) {
+                MovingPlayers message = (MovingPlayers) m;
+                final int id = findId(source);
+                timeouts[id] = TIMEOUT;
+
+
+                final String animation = message.getAnimation();
+                final Vector3f position = message.getPosition();
+                final float[] rotation = message.getRotation();
+                final Vector3f orientation = message.getOrientation();
+
+
+                players[id].setPosition(position);
+                players[id].setOrientation(arrayToQuaternion(rotation));
+
+                MovingPlayers sendMessage = new MovingPlayers(id, position, rotation, orientation, animation);
+                server.broadcast(Filters.in(hostedConnections), sendMessage);
             }
         }
     }

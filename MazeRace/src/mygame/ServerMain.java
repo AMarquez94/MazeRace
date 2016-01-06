@@ -55,11 +55,11 @@ public class ServerMain extends SimpleApplication {
     private ArrayList<HostedConnection> redPlayersCon;
     private ArrayList<HostedConnection> bluePlayersCon;
     private BulletAppState bas;
-    private ServerPlayer[] players;
+    private static ServerPlayer[] players;
     private int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
-    private Vector3f treasureLocation;
+    private static Vector3f treasureLocation;
     private TerrainQuad terrain;
     private float[] timeouts;
     private static Vector3f[] initialPositions;
@@ -157,13 +157,17 @@ public class ServerMain extends SimpleApplication {
                 broadcastMessage(packPrepareMessage());
                 periodic_threshold = 0;
             } else {
-                periodic_threshold++;
+                periodic_threshold = periodic_threshold+tpf;
             }
         } else if (state == ServerGameState.GameRunning) {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
 
                     ServerControl.changeServerState(ServerGameState.GameStopped);
+
+                    treasureLocation = new Vector3f(0f, -100f, 0f);
+                    p.setHasTreasure(false);
+                    
                     broadcastMessage(new End(p.getTeam()));
                 }
                 checkOtherPlayers(p);
@@ -357,7 +361,7 @@ public class ServerMain extends SimpleApplication {
                         }
                     }
 
-                    server.broadcast(message); //send packet
+                    server.broadcast(Filters.in(hostedConnections),message); //send packet
                 }
             }
         }
@@ -638,7 +642,10 @@ public class ServerMain extends SimpleApplication {
     protected static void changeGameState(ServerGameState newState) {
         if (!(state == newState)) {
             if (newState == ServerGameState.GameRunning) {
-                server.broadcast(new Start());
+                if(state == ServerGameState.GameStopped){
+                    broadcastMessage(packRestartMessage());
+                }
+                broadcastMessage(new Start());
             } else if (newState == ServerGameState.GameStopped) {
             }
 
@@ -671,6 +678,27 @@ public class ServerMain extends SimpleApplication {
         }
 
         return new Prepare(positions, orientations, nickname, teams);
+    }
+    
+    private static Restart packRestartMessage() {
+        Vector3f[] positions = new Vector3f[MAX_PLAYERS];
+        
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            if (players[i] == null) {
+
+                positions[i] = new Vector3f(0, 0, 0);
+            } else {
+                 if (players[i].getTeam() == Team.Blue) {
+                    players[i].setPosition(initialPositions[i % MAX_PLAYERS / 2]);
+                    positions[i] = players[i].getPosition();
+                } else {
+                    players[i].setPosition(initialPositions[MAX_PLAYERS / 2 + i % MAX_PLAYERS / 2]);
+                    players[i].setHealth(100);
+                    positions[i] = players[i].getPosition();
+                }
+            }
+        }
+        return new Restart(positions);
     }
 
     private int findId(HostedConnection source) {

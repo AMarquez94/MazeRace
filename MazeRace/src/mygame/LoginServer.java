@@ -25,10 +25,7 @@ import gameobjects.ServerPlayer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Callable;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
@@ -169,7 +166,7 @@ public class LoginServer extends SimpleApplication {
     }
 
     public static Vector3f getSpawnZonePoint(Team team) {
-        if (team == Team.Red) {
+        if (team == Team.Blue) {
             return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
         } else {
             return new Vector3f(8.813507f, -100.00002f, 250.53908f);

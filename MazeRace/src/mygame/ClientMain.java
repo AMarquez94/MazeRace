@@ -123,7 +123,8 @@ public class ClientMain extends SimpleApplication {
     private float chatTimeout = CHAT_SECONDS;
     //Useful variables
     private Quaternion tmpQuat;
-
+    private BitmapText announcement;
+    
     public static void main(String[] args) {
         app = new ClientMain();
 
@@ -195,7 +196,7 @@ public class ClientMain extends SimpleApplication {
         state = ClientGameState.GameStopped;
 
         BitmapFont guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
-        BitmapText announcement = new BitmapText(guiFont, false);
+        announcement = new BitmapText(guiFont, false);
         announcement.setSize(guiFont.getCharSet().getRenderedSize() * 2);
         announcement.setText(winner + " has won!");
         announcement.setLocalTranslation(settings.getWidth() / 2 - announcement.getLineWidth() / 2, settings.getHeight() / 2 + announcement.getLineHeight() / 2, 0);
@@ -1269,6 +1270,52 @@ public class ClientMain extends SimpleApplication {
                             System.out.println("Stop showing");
                             players.get(message.getIdPlayer()).show(false);
                         }
+                        return null;
+                    }
+                });
+            } else if(m instanceof Restart){
+                System.out.println("Reztart");
+                final Restart message = (Restart) m;
+                
+                app.enqueue(new Callable() {
+                    public Object call() throws Exception {
+                        
+                        //We delete the message
+                        if(announcement!=null){
+                            announcement.setText("");
+                        }
+                        
+                        //We put the treasure
+                        if (treasureNode == null) {
+                            treasureNode = new Treasure(app, bas);
+                        }
+                        rootNode.attachChild(treasureNode);
+
+                        for (Player p : players.values()) {
+                            p.setTreasureMode(false);
+                        }
+
+                        //put treasure in position
+                        treasureNode.setLocalTranslation(new Vector3f(0f, -100f, 0f));
+                        
+                        Vector3f[] positions = message.getPositions();
+                        
+                        for(int i = 0; i < positions.length; i++){
+                            if(players.get(i)!=null){
+                                players.get(i).getCharacterControl().warp(positions[i]);
+                                players.get(i).setPosition(positions[i]);
+                                players.get(i).setHealth(100);
+                                if(players.get(i) == getPlayer()){
+                                    left = false;
+                                    right = false;
+                                    up = false;
+                                    down = false;
+                                    healthbar.setLocalScale(1, 1, 1);
+                                    healthtext.setText("Life: " + 100 + "%");
+                                }
+                            }
+                        }
+                        
                         return null;
                     }
                 });

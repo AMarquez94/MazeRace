@@ -157,7 +157,8 @@ public class RedServer extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
                     sendMessage(Filters.in(hostedConnections), new End(p.getTeam()));
-                    ServerControlLogin.changeServerState(ServerGameState.GameStopped);
+                    clientBlueServer.send(new End(p.getTeam()));
+                    ServerControlRed.changeServerState(ServerGameState.GameStopped);
                 }
             }
         }
@@ -181,7 +182,7 @@ public class RedServer extends SimpleApplication {
     }
 
     public static Vector3f getSpawnZonePoint(Team team) {
-        if (team == Team.Red) {
+        if (team == Team.Blue) {
             return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
         } else {
             return new Vector3f(8.813507f, -100.00002f, 250.53908f);
@@ -707,7 +708,9 @@ public class RedServer extends SimpleApplication {
             } else if (m instanceof NewPlayerConnected) {
                 NewPlayerConnected message = (NewPlayerConnected) m;
                 int idNew = message.getId();
+                Vector3f position = message.getPosition();
                 connectPlayer(message.getNickname(), Team.Blue, source, idNew);
+                players[idNew].setPosition(position);
                 server.broadcast(Filters.in(hostedConnections),
                         new NewPlayerConnected(idNew, players[idNew].getNickname(),
                         players[idNew].getTeam(), players[idNew].getPosition()));
@@ -719,12 +722,10 @@ public class RedServer extends SimpleApplication {
                 final int id = findId(source);
                 timeouts[id] = TIMEOUT;
 
-
                 final String animation = message.getAnimation();
                 final Vector3f position = message.getPosition();
                 final float[] rotation = message.getRotation();
                 final Vector3f orientation = message.getOrientation();
-
 
                 players[id].setPosition(position);
                 players[id].setOrientation(arrayToQuaternion(rotation));
@@ -770,6 +771,9 @@ public class RedServer extends SimpleApplication {
                 players[id].setPosition(initialPositions[id % MAX_PLAYERS / 2]);
 
                 server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, position));
+            } else if (m instanceof End) {
+                End message = (End) m;
+                server.broadcast(Filters.in(hostedConnections), new End(message.winnerTeam));
             }
         }
     }

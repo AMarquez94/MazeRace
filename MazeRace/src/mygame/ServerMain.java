@@ -160,7 +160,7 @@ public class ServerMain extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
 
-                    ServerControlLogin.changeServerState(ServerGameState.GameStopped);
+                    ServerControl.changeServerState(ServerGameState.GameStopped);
                     sendMessage(Filters.in(hostedConnections), new End(p.getTeam()));
                 }
             }
@@ -185,7 +185,7 @@ public class ServerMain extends SimpleApplication {
     }
 
     public static Vector3f getSpawnZonePoint(Team team) {
-        if (team == Team.Red) {
+        if (team == Team.Blue) {
             return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
         } else {
             return new Vector3f(8.813507f, -100.00002f, 250.53908f);

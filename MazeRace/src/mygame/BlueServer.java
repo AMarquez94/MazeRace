@@ -156,7 +156,8 @@ public class BlueServer extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
                     sendMessage(Filters.in(hostedConnections), new End(p.getTeam()));
-                    ServerControlLogin.changeServerState(ServerGameState.GameStopped);
+                    clientRedServer.send(new End(p.getTeam()));
+                    ServerControlBlue.changeServerState(ServerGameState.GameStopped);
                 }
             }
         }
@@ -180,7 +181,7 @@ public class BlueServer extends SimpleApplication {
     }
 
     public static Vector3f getSpawnZonePoint(Team team) {
-        if (team == Team.Red) {
+        if (team == Team.Blue) {
             return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
         } else {
             return new Vector3f(8.813507f, -100.00002f, 250.53908f);
@@ -701,7 +702,9 @@ public class BlueServer extends SimpleApplication {
             } else if (m instanceof NewPlayerConnected) {
                 NewPlayerConnected message = (NewPlayerConnected) m;
                 int idNew = message.getId();
+                Vector3f position = message.getPosition();
                 connectPlayer(message.getNickname(), Team.Red, source, idNew);
+                players[idNew].setPosition(position);
                 server.broadcast(Filters.in(hostedConnections),
                         new NewPlayerConnected(idNew, players[idNew].getNickname(),
                         players[idNew].getTeam(), players[idNew].getPosition()));
@@ -764,6 +767,9 @@ public class BlueServer extends SimpleApplication {
                 players[id].setPosition(initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2]);
 
                 server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, position));
+            } else if(m instanceof End){ 
+                End message = (End) m;
+                server.broadcast(Filters.in(hostedConnections), new End(message.winnerTeam));
             }
         }
     }

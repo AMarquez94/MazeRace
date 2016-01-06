@@ -56,6 +56,7 @@ public class Networking {
         Serializer.registerClass(HeartBeat.class);
         Serializer.registerClass(SendMessage.class);
         Serializer.registerClass(BroadcastMessage.class);
+        Serializer.registerClass(ShowMessage.class);
     }
 
     /**
@@ -767,6 +768,34 @@ public class Networking {
 
         public int getId() {
             return id;
+        }
+    }
+    
+     /**
+     * Server -> Client
+     * Server sends to the client that he has to start culling player with id "id"
+     * if "show" is true. Otherwise, he has to stop culling him.
+     */
+    @Serializable
+    public static class ShowMessage extends AbstractMessage {
+
+        private boolean show;
+        private int idPlayer;
+        
+        public ShowMessage() {
+        }
+        
+        public ShowMessage(boolean show, int idPlayer){
+            this.show = show;
+            this.idPlayer = idPlayer;
+        }
+
+        public boolean isShow() {
+            return show;
+        }
+
+        public int getIdPlayer() {
+            return idPlayer;
         }
     }
 }

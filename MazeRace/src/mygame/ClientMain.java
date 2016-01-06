@@ -880,6 +880,7 @@ public class ClientMain extends SimpleApplication {
                 if (evt.getKeyCode() == KeyInput.KEY_RETURN) {
                     try {
                         sendMessage(new Connect(nickname));
+                        System.out.println("Connection requested");
                     } catch (Throwable ex) {
                         Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
                     }

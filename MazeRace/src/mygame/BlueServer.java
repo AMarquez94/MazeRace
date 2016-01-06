@@ -575,8 +575,24 @@ public class BlueServer extends SimpleApplication {
     }
 
     private static class RedServerListener implements MessageListener<HostedConnection> {
-
         public void messageReceived(HostedConnection source, Message m) {
+            if (!(m instanceof Aggregation)) {
+                processMessage(source, m);
+            }
+
+            final Aggregation aggregation = (Aggregation) m;
+            //get messages
+            ArrayList<AbstractMessage> messages = aggregation.getMessages();
+
+            //process messages
+            for (final AbstractMessage message : messages) {
+                if (message != null) {
+                    processMessage(source, message);
+                }
+            }
+        }
+
+        public void processMessage(HostedConnection source, Message m) {
             if (m instanceof PutMark) {
                 PutMark message = (PutMark) m;
                 server.broadcast(Filters.in(hostedConnections),

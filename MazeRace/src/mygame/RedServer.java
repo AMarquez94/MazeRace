@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
@@ -50,6 +51,7 @@ public class RedServer extends SimpleApplication {
     //GLOBAL VARIABLES
     private static Server server;
     private static HostedConnection[] hostedConnections;
+    private static LinkedBlockingQueue<AbstractMessage> redQueue;
     private BulletAppState bas;
     private static ServerPlayer[] players;
     private String[] nicknames;
@@ -122,8 +124,12 @@ public class RedServer extends SimpleApplication {
         shootables = new Node("Shootables");
         rootNode.attachChild(shootables);
 
-
         new ServerControlRed(this);
+        
+        //networking
+        redQueue = new LinkedBlockingQueue<AbstractMessage>();
+        Thread t = new Thread(new RedSender());
+        t.start();
     }
 
     @Override
@@ -131,7 +137,7 @@ public class RedServer extends SimpleApplication {
         if (state == ServerGameState.GameStopped) {
             //Send a Prepare every second. TODO implement this better.
             if (periodic_threshold > 1) {
-                server.broadcast(Filters.in(hostedConnections), packPrepareMessage());
+                broadcastRedMessage( packPrepareMessage());
                 periodic_threshold = 0;
             } else {
                 periodic_threshold++;
@@ -139,7 +145,7 @@ public class RedServer extends SimpleApplication {
         } else if (state == ServerGameState.GameRunning) {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
-                    server.broadcast(Filters.in(hostedConnections), new End(p.getTeam()));
+                    broadcastRedMessage( new End(p.getTeam()));
                     ServerControlLogin.changeServerState(ServerGameState.GameStopped);
                 }
             }
@@ -298,12 +304,12 @@ public class RedServer extends SimpleApplication {
                         int idNew = nicknameToId.get(nickname);
 //                        int idNew = 0;
                         connectPlayer(nickname, Team.Red, source, idNew);
-                        server.broadcast(Filters.in(hostedConnections),
+                        broadcastRedMessage(
                                 new NewPlayerConnected(idNew, players[idNew].getNickname(),
                                 players[idNew].getTeam(), players[idNew].getPosition()));
-                        server.broadcast(Filters.in(hostedConnections),
+                        broadcastRedMessage(
                                 packPrepareMessage());
-                        server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                        broadcastRedMessage( new TreasureDropped(treasureLocation));
                         clientBlueServer.send(new NewPlayerConnected(idNew, players[idNew].getNickname(),
                                 Team.Red, players[idNew].getPosition()));
                         return null;
@@ -331,7 +337,7 @@ public class RedServer extends SimpleApplication {
                         players[id].setPosition(position);
                         players[id].setOrientation(arrayToQuaternion(rotation));
                         MovingPlayers sendMessage = new MovingPlayers(id, position, rotation, orientation, animation);
-                        server.broadcast(Filters.in(hostedConnections), sendMessage);
+                        broadcastRedMessage( sendMessage);
                         clientBlueServer.send(sendMessage);
                         return null;
                     }
@@ -360,7 +366,7 @@ public class RedServer extends SimpleApplication {
 
                             if (results.size() > 0) {
                                 CollisionResult closest = results.getClosestCollision();
-                                server.broadcast(Filters.in(hostedConnections),
+                                broadcastRedMessage(
                                         new PutMark(Team.Red, closest.getContactPoint()));
                                 clientBlueServer.send(new PutMark(Team.Red, closest.getContactPoint()));
                             }
@@ -397,20 +403,20 @@ public class RedServer extends SimpleApplication {
                                     if (dead) {
                                         players[shooted].setDead(true);
                                         DeadPlayer deadMessage = new DeadPlayer(shooted, id);
-                                        server.broadcast(Filters.in(hostedConnections), deadMessage);
+                                        broadcastRedMessage( deadMessage);
                                         clientBlueServer.send(deadMessage);
                                         if (players[shooted].getHasTreasure()) {
                                             treasureLocation = players[shooted].getWorldTranslation();
                                             treasureLocation.setY(-100f); // to prevent floating treasure
 
-                                            server.broadcast(Filters.in(hostedConnections),
+                                            broadcastRedMessage(
                                                     new TreasureDropped(treasureLocation));
                                             clientBlueServer.send(new TreasureDropped(treasureLocation));
                                             players[shooted].setHasTreasure(false);
                                         }
                                     } else {
                                         PlayerShooted shootedMessage = new PlayerShooted(shooted, id, players[shooted].getHealth());
-                                        server.broadcast(Filters.in(hostedConnections), shootedMessage);
+                                        broadcastRedMessage( shootedMessage);
                                         clientBlueServer.send(shootedMessage);
                                     }
                                 }
@@ -438,7 +444,7 @@ public class RedServer extends SimpleApplication {
 
 
                 //temporarily always allow pickup TODO
-                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
+                broadcastRedMessage( new TreasurePicked(findId(source)));
                 clientBlueServer.send(new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
                 //TODO set to false for other players
@@ -452,7 +458,7 @@ public class RedServer extends SimpleApplication {
             players[id].setHealth(MAX_HEALTH);
             players[id].setPosition(initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2]);
 
-            server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2]));
+            broadcastRedMessage( new PlayerRespawn(id, initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2]));
             clientBlueServer.send(new PlayerRespawn(id, initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2]));
         }
     }
@@ -570,30 +576,93 @@ public class RedServer extends SimpleApplication {
                 server.broadcast(new Start());
             } else if (m instanceof PutMark) {
                 PutMark message = (PutMark) m;
-                server.broadcast(Filters.in(hostedConnections),
+                broadcastRedMessage(
                         new PutMark(Team.Blue, message.getPosition()));
             }
         }
     }
+    
+    /*
+     * Queue broadcast message for red team for aggregation.
+     */
+    private static void broadcastRedMessage(AbstractMessage message) {
+        redQueue.add(message);
+    }
+    
+    /*
+     * Periodically sends messages.
+     */
+    private class RedSender implements Runnable {
+
+        //Algorithm settings
+        private final long TIMEOUT = 300; //timeout in milliseconds
+        private final int QUORUM = 4; //quorum in amount of messages
+
+        public RedSender() {
+        }
+
+        public void run() {
+            long timer; //declare timer
+            Aggregation message; //declare aggregation packet
+
+            while (QUORUM > 0) { //loop forever
+                if (redQueue.size() > 0) { //wait until update is available
+                    message = new Aggregation(); //create an empty packet
+                    message.addMessage(redQueue.poll()); //add update to packet
+                    timer = System.currentTimeMillis(); //set timer
+
+                    quorum_loop:
+                    while (message.getSize() < QUORUM) { //while quorum is not reached
+                        if (System.currentTimeMillis() - timer > TIMEOUT) { //check for timeout
+                            break quorum_loop;
+                        } else if (redQueue.size() > 0) { // else wait for more updates
+                            message.addMessage(redQueue.poll()); //add update to packet
+                        }
+                    }
+
+                    server.broadcast(message); //send packet
+                }
+            }
+        }
+    }
+
 
     private static class BlueServerListener implements MessageListener<HostedConnection> {
 
         public void messageReceived(HostedConnection source, Message m) {
+            if (!(m instanceof Aggregation)) {
+                processMessage(source, m);
+                return;
+            }
+
+            final Aggregation aggregation = (Aggregation) m;
+            //get messages
+            ArrayList<AbstractMessage> messages = aggregation.getMessages();
+
+            //process messages
+            for (final AbstractMessage message : messages) {
+                if (message != null) {
+                    processMessage(source, message);
+                }
+            }
+        }
+
+        public void processMessage(HostedConnection source, Message m) {
 
             if (m instanceof PutMark) {
                 PutMark message = (PutMark) m;
-                server.broadcast(Filters.in(hostedConnections),
+                broadcastRedMessage(
                         new PutMark(Team.Blue, message.getPosition()));
             } else if (m instanceof NewPlayerConnected) {
                 NewPlayerConnected message = (NewPlayerConnected) m;
                 int idNew = message.getId();
                 connectPlayer(message.getNickname(), Team.Blue, source, idNew);
-                server.broadcast(Filters.in(hostedConnections),
+                broadcastRedMessage(
                         new NewPlayerConnected(idNew, players[idNew].getNickname(),
                         players[idNew].getTeam(), players[idNew].getPosition()));
-                server.broadcast(Filters.in(hostedConnections),
+                broadcastRedMessage(
                         packPrepareMessage());
-                server.broadcast(Filters.in(hostedConnections), new TreasureDropped(treasureLocation));
+                broadcastRedMessage( new TreasureDropped(treasureLocation));
             } else if (m instanceof MovingPlayers) {
                 MovingPlayers message = (MovingPlayers) m;
                 final int id = findId(source);
@@ -610,7 +679,7 @@ public class RedServer extends SimpleApplication {
                 players[id].setOrientation(arrayToQuaternion(rotation));
 
                 MovingPlayers sendMessage = new MovingPlayers(id, position, rotation, orientation, animation);
-                server.broadcast(Filters.in(hostedConnections), sendMessage);
+                broadcastRedMessage( sendMessage);
             } else if (m instanceof DeadPlayer) {
                 DeadPlayer message = (DeadPlayer) m;
                 int shooted = message.getDeadPlayer();
@@ -618,7 +687,7 @@ public class RedServer extends SimpleApplication {
 
                 players[shooted].setDead(true);
                 DeadPlayer deadMessage = new DeadPlayer(shooted, killer);
-                server.broadcast(Filters.in(hostedConnections), deadMessage);
+                broadcastRedMessage( deadMessage);
 
                 if (players[shooted].getHasTreasure()) {
                     players[shooted].setHasTreasure(false);
@@ -634,11 +703,11 @@ public class RedServer extends SimpleApplication {
                 players[shooted].decreaseHealth(DAMAGE_BULLET);
 
                 PlayerShooted shootedMessage = new PlayerShooted(shooted, id, players[shooted].getHealth());
-                server.broadcast(Filters.in(hostedConnections), shootedMessage);
+                broadcastRedMessage( shootedMessage);
             } else if (m instanceof TreasurePicked) {
                 TreasurePicked message = (TreasurePicked) m;
                 players[message.getPlayerID()].setHasTreasure(true);
-                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(message.getPlayerID()));
+                broadcastRedMessage( new TreasurePicked(message.getPlayerID()));
             } else if (m instanceof PlayerRespawn) {
                 PlayerRespawn message = (PlayerRespawn) m;
 
@@ -649,7 +718,7 @@ public class RedServer extends SimpleApplication {
                 players[id].setHealth(MAX_HEALTH);
                 players[id].setPosition(initialPositions[id % MAX_PLAYERS / 2]);
 
-                server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, position));
+                broadcastRedMessage( new PlayerRespawn(id, position));
             }
         }
     }

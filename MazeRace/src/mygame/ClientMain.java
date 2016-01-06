@@ -944,7 +944,8 @@ public class ClientMain extends SimpleApplication {
 
         public void messageReceived(Client source, Message m) {
             if (!(m instanceof Aggregation)) {
-                System.out.println("Cannot process message!!");
+                processMessage(source, m);
+                return;
             }
 
             final Aggregation aggregation = (Aggregation) m;
@@ -954,12 +955,12 @@ public class ClientMain extends SimpleApplication {
             //process messages
             for (final AbstractMessage message : messages) {
                 if (message != null) {
-                    processAggregation(source, message);
+                    processMessage(source, message);
                 }
             }
         }
 
-        public void processAggregation(Client source, Message m) {
+        public void processMessage(Client source, Message m) {
             if (m instanceof ConnectServer) {
                 ConnectServer message = (ConnectServer) m;
                 final String ip = message.getIp();

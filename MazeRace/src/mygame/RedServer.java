@@ -30,6 +30,7 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
+import static mygame.BlueServer.DAMAGE_BULLET;
 import mygame.Networking.*;
 
 /**
@@ -395,21 +396,22 @@ public class RedServer extends SimpleApplication {
 
                                     if (dead) {
                                         players[shooted].setDead(true);
-
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                new DeadPlayer(shooted, id));
-
+                                        DeadPlayer deadMessage = new DeadPlayer(shooted, id);
+                                        server.broadcast(Filters.in(hostedConnections), deadMessage);
+                                        clientBlueServer.send(deadMessage);
                                         if (players[shooted].getHasTreasure()) {
                                             treasureLocation = players[shooted].getWorldTranslation();
                                             treasureLocation.setY(-100f); // to prevent floating treasure
 
                                             server.broadcast(Filters.in(hostedConnections),
                                                     new TreasureDropped(treasureLocation));
+                                            clientBlueServer.send(new TreasureDropped(treasureLocation));
                                             players[shooted].setHasTreasure(false);
                                         }
                                     } else {
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                new PlayerShooted(shooted, id, players[shooted].getHealth()));
+                                        PlayerShooted shootedMessage = new PlayerShooted(shooted, id, players[shooted].getHealth());
+                                        server.broadcast(Filters.in(hostedConnections), shootedMessage);
+                                        clientBlueServer.send(shootedMessage);
                                     }
                                 }
                             }
@@ -437,6 +439,7 @@ public class RedServer extends SimpleApplication {
 
                 //temporarily always allow pickup TODO
                 server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
+                clientBlueServer.send(new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
                 //TODO set to false for other players
             }
@@ -450,6 +453,7 @@ public class RedServer extends SimpleApplication {
             players[id].setPosition(initialPositions[id]);
 
             server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
+            clientBlueServer.send(new PlayerRespawn(id, initialPositions[id]));
         }
     }
 
@@ -607,6 +611,45 @@ public class RedServer extends SimpleApplication {
 
                 MovingPlayers sendMessage = new MovingPlayers(id, position, rotation, orientation, animation);
                 server.broadcast(Filters.in(hostedConnections), sendMessage);
+            } else if (m instanceof DeadPlayer) {
+                DeadPlayer message = (DeadPlayer) m;
+                int shooted = message.getDeadPlayer();
+                int killer = message.getKillerPlayer();
+
+                players[shooted].setDead(true);
+                DeadPlayer deadMessage = new DeadPlayer(shooted, killer);
+                server.broadcast(Filters.in(hostedConnections), deadMessage);
+
+                if (players[shooted].getHasTreasure()) {
+                    players[shooted].setHasTreasure(false);
+                }
+            } else if (m instanceof TreasureDropped) {
+                TreasureDropped message = (TreasureDropped) m;
+                treasureLocation = message.getLocation();
+            } else if (m instanceof PlayerShooted) {
+                PlayerShooted message = (PlayerShooted) m;
+                int shooted = message.getShootedPlayerId();
+                int id = message.getShootingPlayerId();
+
+                players[shooted].decreaseHealth(DAMAGE_BULLET);
+
+                PlayerShooted shootedMessage = new PlayerShooted(shooted, id, players[shooted].getHealth());
+                server.broadcast(Filters.in(hostedConnections), shootedMessage);
+            } else if (m instanceof TreasurePicked) {
+                TreasurePicked message = (TreasurePicked) m;
+                players[message.getPlayerID()].setHasTreasure(true);
+                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(message.getPlayerID()));
+            } else if (m instanceof PlayerRespawn) {
+                PlayerRespawn message = (PlayerRespawn) m;
+
+                int id = message.getPlayerRespawn();
+                Vector3f position = message.getPosition();
+
+                players[id].setDead(false);
+                players[id].setHealth(MAX_HEALTH);
+                players[id].setPosition(initialPositions[id]);
+
+                server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, position));
             }
         }
     }

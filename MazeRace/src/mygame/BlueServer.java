@@ -393,8 +393,9 @@ public class BlueServer extends SimpleApplication {
                                     if (dead) {
                                         players[shooted].setDead(true);
 
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                new DeadPlayer(shooted, id));
+                                        DeadPlayer deadMessage = new DeadPlayer(shooted, id);
+                                        server.broadcast(Filters.in(hostedConnections), deadMessage);
+                                        clientRedServer.send(deadMessage);
 
                                         if (players[shooted].getHasTreasure()) {
                                             treasureLocation = players[shooted].getWorldTranslation();
@@ -402,11 +403,13 @@ public class BlueServer extends SimpleApplication {
 
                                             server.broadcast(Filters.in(hostedConnections),
                                                     new TreasureDropped(treasureLocation));
+                                            clientRedServer.send(new TreasureDropped(treasureLocation));
                                             players[shooted].setHasTreasure(false);
                                         }
                                     } else {
-                                        server.broadcast(Filters.in(hostedConnections),
-                                                new PlayerShooted(shooted, id, players[shooted].getHealth()));
+                                        PlayerShooted shootedMessage = new PlayerShooted(shooted, id, players[shooted].getHealth());
+                                        server.broadcast(Filters.in(hostedConnections), shootedMessage);
+                                        clientRedServer.send(shootedMessage);
                                     }
                                 }
                             }
@@ -434,6 +437,7 @@ public class BlueServer extends SimpleApplication {
 
                 //temporarily always allow pickup TODO
                 server.broadcast(Filters.in(hostedConnections), new TreasurePicked(findId(source)));
+                clientRedServer.send(new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
                 //TODO set to false for other players
             }
@@ -447,6 +451,7 @@ public class BlueServer extends SimpleApplication {
             players[id].setPosition(initialPositions[id]);
 
             server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, initialPositions[id]));
+            clientRedServer.send(new PlayerRespawn(id, initialPositions[id]));
         }
     }
 
@@ -596,13 +601,52 @@ public class BlueServer extends SimpleApplication {
                 final Vector3f position = message.getPosition();
                 final float[] rotation = message.getRotation();
                 final Vector3f orientation = message.getOrientation();
-                
-                
+
+
                 players[id].setPosition(position);
                 players[id].setOrientation(arrayToQuaternion(rotation));
-                
+
                 MovingPlayers sendMessage = new MovingPlayers(id, position, rotation, orientation, animation);
                 server.broadcast(Filters.in(hostedConnections), sendMessage);
+            } else if (m instanceof DeadPlayer) {
+                DeadPlayer message = (DeadPlayer) m;
+                int shooted = message.getDeadPlayer();
+                int killer = message.getKillerPlayer();
+
+                players[shooted].setDead(true);
+                DeadPlayer deadMessage = new DeadPlayer(shooted, killer);
+                server.broadcast(Filters.in(hostedConnections), deadMessage);
+
+                if (players[shooted].getHasTreasure()) {
+                    players[shooted].setHasTreasure(false);
+                }
+            } else if (m instanceof TreasureDropped) {
+                TreasureDropped message = (TreasureDropped) m;
+                treasureLocation = message.getLocation();
+            } else if (m instanceof PlayerShooted) {
+                PlayerShooted message = (PlayerShooted) m;
+                int shooted = message.getShootedPlayerId();
+                int id = message.getShootingPlayerId();
+
+                players[shooted].decreaseHealth(DAMAGE_BULLET);
+
+                PlayerShooted shootedMessage = new PlayerShooted(shooted, id, players[shooted].getHealth());
+                server.broadcast(Filters.in(hostedConnections), shootedMessage);
+            } else if (m instanceof TreasurePicked) {
+                TreasurePicked message = (TreasurePicked) m;
+                players[message.getPlayerID()].setHasTreasure(true);
+                server.broadcast(Filters.in(hostedConnections), new TreasurePicked(message.getPlayerID()));
+            } else if (m instanceof PlayerRespawn) {
+                PlayerRespawn message = (PlayerRespawn) m;
+                
+                int id = message.getPlayerRespawn();
+                Vector3f position = message.getPosition();
+                
+                players[id].setDead(false);
+                players[id].setHealth(MAX_HEALTH);
+                players[id].setPosition(initialPositions[id]);
+
+                server.broadcast(Filters.in(hostedConnections), new PlayerRespawn(id, position));
             }
         }
     }

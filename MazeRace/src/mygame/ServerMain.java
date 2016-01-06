@@ -163,7 +163,7 @@ public class ServerMain extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
 
-                    ServerControlLogin.changeServerState(ServerGameState.GameStopped);
+                    ServerControl.changeServerState(ServerGameState.GameStopped);
                     sendMessage(Filters.in(hostedConnections), new End(p.getTeam()));
                 }
                 checkOtherPlayers(p);

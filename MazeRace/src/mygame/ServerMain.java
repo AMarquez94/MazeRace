@@ -212,7 +212,14 @@ public class ServerMain extends SimpleApplication {
         boolean find = false;
         while (i < players.length && !find) {
             if (players[i] == null) {
-                players[i] = new ServerPlayer(i, chooseTeam(i), initialPositions[i],
+                Team team = chooseTeam(i);
+                Vector3f position;
+                if (team == Team.Blue) {
+                    position = initialPositions[i % MAX_PLAYERS / 2];
+                } else {
+                    position = initialPositions[MAX_PLAYERS / 2 + i % MAX_PLAYERS / 2];
+                }
+                players[i] = new ServerPlayer(i, chooseTeam(i), position,
                         nickname, app);
                 hostedConnections[i] = s;
                 if (players[i].getTeam() == Team.Blue) {
@@ -323,7 +330,7 @@ public class ServerMain extends SimpleApplication {
                     //send packets
                     while (!messageQueue.isEmpty()) {
                         ServerMessage message = messageQueue.poll();
-                        
+
                         if (message.filter != null) {
                             server.broadcast(message.filter, message.message);
                         } else {
@@ -520,27 +527,31 @@ public class ServerMain extends SimpleApplication {
 
                             shootables.collideWith(ray, results);
                             if (results.size() > 0) {
-                                int shooted = checkShooted(id, results);
-                                if (shooted >= 0) {
-                                    boolean dead = players[shooted].decreaseHealth(DAMAGE_BULLET);
+                                float[] checkResult = checkShooted(id, results);
+                                int shooted = (int) checkResult[0];
+                                boolean check = checkWall(ray, checkResult[1]);
+                                if (check) {
+                                    if (shooted >= 0) {
+                                        boolean dead = players[shooted].decreaseHealth(DAMAGE_BULLET);
 
-                                    if (dead) {
-                                        players[shooted].setDead(true);
-
-                                        sendMessage(Filters.in(hostedConnections),
-                                                new DeadPlayer(shooted, id));
-
-                                        if (players[shooted].getHasTreasure()) {
-                                            treasureLocation = players[shooted].getWorldTranslation();
-                                            treasureLocation.setY(-100f); // to prevent floating treasure
+                                        if (dead) {
+                                            players[shooted].setDead(true);
 
                                             sendMessage(Filters.in(hostedConnections),
-                                                    new TreasureDropped(treasureLocation));
-                                            players[shooted].setHasTreasure(false);
+                                                    new DeadPlayer(shooted, id));
+
+                                            if (players[shooted].getHasTreasure()) {
+                                                treasureLocation = players[shooted].getWorldTranslation();
+                                                treasureLocation.setY(-100f); // to prevent floating treasure
+
+                                                sendMessage(Filters.in(hostedConnections),
+                                                        new TreasureDropped(treasureLocation));
+                                                players[shooted].setHasTreasure(false);
+                                            }
+                                        } else {
+                                            sendMessage(Filters.in(hostedConnections),
+                                                    new PlayerShooted(shooted, id, players[shooted].getHealth()));
                                         }
-                                    } else {
-                                        sendMessage(Filters.in(hostedConnections),
-                                                new PlayerShooted(shooted, id, players[shooted].getHealth()));
                                     }
                                 }
                             }
@@ -661,21 +672,40 @@ public class ServerMain extends SimpleApplication {
      * Returns the index of the first player that has been shooted. (-1 if
      * didn't shoot anything)
      */
-    private int checkShooted(int id, CollisionResults results) {
+    private float[] checkShooted(int id, CollisionResults results) {
         int result = -1;
         int i = 0;
+        float distance = -1;
         boolean find = false;
         while (i < results.size() && !find) {
             int shooted = Integer.parseInt(results.getCollision(i)
                     .getGeometry().getParent().getName());
-
-            if (id != shooted && !players[shooted].isDead()) {
+            if (id != shooted) {
+                distance = results.getCollision(i).getDistance();
                 result = shooted;
                 find = true;
             } else {
                 i++;
             }
         }
-        return result;
+        return new float[]{result, distance};
+    }
+
+    private boolean checkWall(Ray ray, float distance) {
+        float distanceWall = -1;
+        CollisionResults resultWall = new CollisionResults();
+        rootNode.collideWith(ray, resultWall);
+
+        for (int i = 0; i < resultWall.size(); i++) {
+            if (resultWall.getCollision(i).getGeometry().getName().contains("terrain")) {
+                distanceWall = resultWall.getCollision(i).getDistance();
+            }
+        }
+
+        if (distance < distanceWall) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

@@ -629,6 +629,7 @@ public class BlueServer extends SimpleApplication {
         public void messageReceived(HostedConnection source, Message m) {
             if (!(m instanceof Aggregation)) {
                 processMessage(source, m);
+                return;
             }
 
             final Aggregation aggregation = (Aggregation) m;

@@ -339,8 +339,8 @@ public class ClientMain extends SimpleApplication {
                         }
                     }
                 } else if (name.equals("Pos") && !keyPressed) {
-                    //System.out.println(getPlayer().getWorldTranslation());
-                    System.out.println(cam.getDirection());
+                    System.out.println(getPlayer().getWorldTranslation());
+                    //System.out.println(cam.getDirection());
                     
                 } else if(name.equals("Chat") && !keyPressed){
                     message.setText("");
@@ -562,15 +562,15 @@ public class ClientMain extends SimpleApplication {
 
                 //check the x rotation
 
-                if(angles[0] >= FastMath.HALF_PI - 0.1f){
+                if(angles[0] >= FastMath.QUARTER_PI - 0.1f){
 
-                    angles[0]=FastMath.HALF_PI - 0.1f;
+                    angles[0]=FastMath.QUARTER_PI - 0.1f;
 
                     cam.setRotation(tmpQuat.fromAngles(angles));
 
-                }else if(angles[0] <= -FastMath.HALF_PI + 0.1f){
+                }else if(angles[0] <= -FastMath.QUARTER_PI + 0.1f){
 
-                    angles[0]=-FastMath.HALF_PI + 0.1f;
+                    angles[0]=-FastMath.QUARTER_PI + 0.1f;
 
                     cam.setRotation(tmpQuat.fromAngles(angles));
 
@@ -859,6 +859,10 @@ public class ClientMain extends SimpleApplication {
         chatEnabled = true;
         chatTimeout = CHAT_SECONDS;
     }
+    
+    private Quaternion arrayToQuaternion(float[] r) {
+        return new Quaternion(r[0], r[1], r[2], r[3]);
+    }
 
     public class NicknameHUDListener implements RawInputListener {
 
@@ -885,6 +889,7 @@ public class ClientMain extends SimpleApplication {
                 if (evt.getKeyCode() == KeyInput.KEY_RETURN) {
                     try {
                         sendMessage(new Connect(nickname));
+                        System.out.println("Connection requested");
                     } catch (Throwable ex) {
                         Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -1038,6 +1043,7 @@ public class ClientMain extends SimpleApplication {
                             p.setPosition(message.getPosition());
                             Vector3f rotation = message.getOrientation();
                             p.getCharacterControl().setViewDirection(rotation);
+                            p.aimGun(rotation);
 
                             //change anim only if not the same, else shocking motion
                             if (!p.getAnimChannel().getAnimationName().equals(message.getAnimation())) {

@@ -680,7 +680,7 @@ public class ServerMain extends SimpleApplication {
         while (i < results.size() && !find) {
             int shooted = Integer.parseInt(results.getCollision(i)
                     .getGeometry().getParent().getName());
-            if (id != shooted) {
+            if (id != shooted && !players[shooted].isDead()) {
                 distance = results.getCollision(i).getDistance();
                 result = shooted;
                 find = true;

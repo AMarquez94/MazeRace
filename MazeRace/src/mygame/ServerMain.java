@@ -124,7 +124,7 @@ public class ServerMain extends SimpleApplication {
 
 
 
-        new ServerControlLogin(this);
+        new ServerControl(this);
 
 
         //networking

@@ -29,6 +29,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import maze.Maze;
 import mygame.Networking.*;
 
@@ -81,7 +82,9 @@ public class ServerMain extends SimpleApplication {
         Networking.initialiseSerializables();
 
         try {
-            server = Network.createServer(Networking.PORT_LOGIN);
+            String port = JOptionPane.showInputDialog("Insert server port number",Networking.PORT_LOGIN);
+            int portNumber = Integer.parseInt(port);
+            server = Network.createServer(portNumber);
             server.start();
 
         } catch (IOException ex) {

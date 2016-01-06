@@ -55,6 +55,7 @@ import java.util.logging.Logger;
 import maze.Maze;
 import mygame.Networking.*;
 import static gameobjects.Player.*;
+import javax.swing.JOptionPane;
 import maze.Treasure;
 import static mygame.ServerMain.*;
 
@@ -136,8 +137,7 @@ public class ClientMain extends SimpleApplication {
     public void simpleInitApp() {
         state = ClientGameState.NicknameScreen;
         Networking.initialiseSerializables();
-
-
+        
         //flyCam.setEnabled(false);
         setUpNetworking();
         this.pauseOnFocus = false;
@@ -223,7 +223,10 @@ public class ClientMain extends SimpleApplication {
     private void setUpNetworking() {
         //Start connection to login server
         try {
-            client = Network.connectToServer(Networking.HOST_LOGIN, Networking.PORT_LOGIN);
+            String ip = JOptionPane.showInputDialog("Insert IP address to connect",Networking.HOST_LOGIN);
+            String port = JOptionPane.showInputDialog("Insert port number to connect",Networking.PORT_LOGIN);
+            int portNumber = Integer.parseInt(port);
+            client = Network.connectToServer(ip, portNumber);
             client.start();
         } catch (IOException ex) {
             Logger.getLogger(ClientMain.class.getName()).log(Level.SEVERE, null, ex);

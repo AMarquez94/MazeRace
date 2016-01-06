@@ -223,7 +223,7 @@ public class ServerMain extends SimpleApplication {
                 } else {
                     position = initialPositions[MAX_PLAYERS / 2 + i % MAX_PLAYERS / 2];
                 }
-                players[i] = new ServerPlayer(i, chooseTeam(i), position,
+                players[i] = new ServerPlayer(i, team, position,
                         nickname, app);
                 hostedConnections[i] = s;
                 if (players[i].getTeam() == Team.Blue) {
@@ -593,15 +593,16 @@ public class ServerMain extends SimpleApplication {
 
             players[id].setDead(false);
             players[id].setHealth(MAX_HEALTH);
-            players[id].setPosition(initialPositions[id]);
 
             Team team = players[id].getTeam();
             Vector3f position;
             if (team == Team.Blue) {
-                    position = initialPositions[id % MAX_PLAYERS / 2];
-                } else {
-                    position = initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2];
-                }
+                position = initialPositions[id % MAX_PLAYERS / 2];
+            } else {
+                position = initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2];
+            }
+            players[id].setPosition(position);
+            System.out.println(id);
             sendMessage(Filters.in(hostedConnections), new PlayerRespawn(id, position));
         }
 

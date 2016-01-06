@@ -23,10 +23,13 @@ import com.jme3.system.JmeContext;
 import com.jme3.terrain.geomipmap.TerrainQuad;
 import enums.ServerGameState;
 import enums.Team;
+import gameobjects.Player;
 import gameobjects.ServerPlayer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
@@ -70,8 +73,10 @@ public class BlueServer extends SimpleApplication {
     //game state
     private static ServerGameState state;
     private static Node shootables;
-
+    // players being seen
+    private boolean[][] seen;
     //
+
     public static void main(String[] args) {
         app = new BlueServer();
         app.start(JmeContext.Type.Headless);
@@ -125,6 +130,7 @@ public class BlueServer extends SimpleApplication {
         shootables = new Node("Shootables");
         rootNode.attachChild(shootables);
 
+        seen = new boolean[MAX_PLAYERS][MAX_PLAYERS];
 
         new ServerControlBlue(this);
 
@@ -160,6 +166,7 @@ public class BlueServer extends SimpleApplication {
                     ServerControlBlue.changeServerState(ServerGameState.GameStopped);
                     broadcastBlueMessage(new End(p.getTeam()));
                 }
+                checkOtherPlayers(p);
             }
         }
     }
@@ -270,6 +277,25 @@ public class BlueServer extends SimpleApplication {
             } else {
                 redPlayers++;
                 return Team.Red;
+            }
+        }
+    }
+
+    private void checkOtherPlayers(ServerPlayer p) {
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            if (p != null & players[i] != null && p != players[i]) {
+                if (p.getPosition().distance(players[i].getPosition()) < Player.VIEW_DISTANCE) {
+                    if (!seen[p.getId()][i]) {
+                        seen[p.getId()][i] = true;
+                        server.broadcast(Filters.in(hostedConnections[p.getId()]), new ShowMessage(true, i));
+
+                    }
+                } else {
+                    if (seen[p.getId()][i]) {
+                        seen[p.getId()][i] = false;
+                        server.broadcast(Filters.in(hostedConnections[p.getId()]), new ShowMessage(false, i));
+                    }
+                }
             }
         }
     }
@@ -409,8 +435,16 @@ public class BlueServer extends SimpleApplication {
                         broadcastBlueMessage(
                                 new NewPlayerConnected(idNew, players[idNew].getNickname(),
                                 players[idNew].getTeam(), players[idNew].getPosition()));
-                        broadcastBlueMessage(
-                                packPrepareMessage());
+                        Timer t = new Timer();
+                        t.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                broadcastBlueMessage(
+                                        packPrepareMessage());
+                            }
+                        }, 200);
+//                        broadcastRedMessage(
+//                                packPrepareMessage());
                         broadcastBlueMessage(new TreasureDropped(treasureLocation));
                         clientRedServer.send(new NewPlayerConnected(idNew, players[idNew].getNickname(),
                                 Team.Red, players[idNew].getPosition()));

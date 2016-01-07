@@ -104,7 +104,7 @@ public class RedServer extends SimpleApplication {
         stateManager.attach(bas);
         bas.getPhysicsSpace().enableDebug(assetManager);
 
-        treasureLocation = new Vector3f(0f, -100f, 0f); //initial location of the treasure
+        treasureLocation = new Vector3f(11.559816f, -100.0f, -58.46798f); //initial location of the treasure
 
         terrain = new Maze(this).setUpWorld(rootNode, bas);
         setUpInitialPositions();

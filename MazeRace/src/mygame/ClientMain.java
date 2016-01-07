@@ -1297,7 +1297,7 @@ public class ClientMain extends SimpleApplication {
                         }
 
                         //put treasure in position
-                        treasureNode.setLocalTranslation(new Vector3f(0f, -100f, 0f));
+                        treasureNode.setLocalTranslation(new Vector3f(11.559816f, -100.0f, -58.46798f));
                         
                         Vector3f[] positions = message.getPositions();
                         

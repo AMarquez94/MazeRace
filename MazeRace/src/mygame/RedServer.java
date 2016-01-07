@@ -104,8 +104,9 @@ public class RedServer extends SimpleApplication {
         stateManager.attach(bas);
         bas.getPhysicsSpace().enableDebug(assetManager);
 
-        treasureLocation = new Vector3f(11.559816f, -100.0f, -58.46798f); //initial location of the treasure
-
+//        treasureLocation = new Vector3f(11.559816f, -100.0f, -58.46798f); //initial location of the treasure
+        treasureLocation = new Vector3f(0,-100,0);
+        
         terrain = new Maze(this).setUpWorld(rootNode, bas);
         setUpInitialPositions();
         server.addMessageListener(new MessageHandler());
@@ -165,8 +166,11 @@ public class RedServer extends SimpleApplication {
             for (ServerPlayer p : players) {
                 if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
 
+                    ServerControl.changeServerState(ServerGameState.GameStopped);
+                    treasureLocation = new Vector3f(0,-100,0);
+//                    treasureLocation = new Vector3f(11.559816f, -100.0f, -58.46798f);
+                    p.setHasTreasure(false);
                     clientBlueServer.send(new End(p.getTeam()));
-                    ServerControlRed.changeServerState(ServerGameState.GameStopped);
                     broadcastRedMessage(new End(p.getTeam()));
                 }
                 checkOtherPlayers(p);
@@ -565,7 +569,10 @@ public class RedServer extends SimpleApplication {
     protected static void changeGameState(ServerGameState newState) {
         if (!(state == newState)) {
             if (newState == ServerGameState.GameRunning) {
-                broadcastRedMessage(new Start());
+                if(state == ServerGameState.GameStopped){
+                    server.broadcast(packRestartMessage());
+                }
+                server.broadcast(new Start());
             } else if (newState == ServerGameState.GameStopped) {
             }
 
@@ -598,6 +605,27 @@ public class RedServer extends SimpleApplication {
         }
 
         return new Prepare(positions, orientations, nickname, teams);
+    }
+    
+    private static Restart packRestartMessage() {
+        Vector3f[] positions = new Vector3f[MAX_PLAYERS];
+        
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            if (players[i] == null) {
+
+                positions[i] = new Vector3f(0, 0, 0);
+            } else {
+                 if (players[i].getTeam() == Team.Blue) {
+                    players[i].setPosition(initialPositions[i % MAX_PLAYERS / 2]);
+                    positions[i] = players[i].getPosition();
+                } else {
+                    players[i].setPosition(initialPositions[MAX_PLAYERS / 2 + i % MAX_PLAYERS / 2]);
+                    players[i].setHealth(100);
+                    positions[i] = players[i].getPosition();
+                }
+            }
+        }
+        return new Restart(positions);
     }
 
     private static int findId(HostedConnection source) {

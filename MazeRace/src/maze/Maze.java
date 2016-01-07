@@ -78,7 +78,7 @@ public class Maze {
         AbstractHeightMap heightmap = null;
         //assetManager.registerLocator("assets\\Textures", FileLocator.class);
         Texture heightMapImage = assetManager.loadTexture(
-                "Textures/maze_middle.png");
+                "Textures/maze_middle_test.png");
         heightmap = new ImageBasedHeightMap(heightMapImage.getImage());
         heightmap.load();
 

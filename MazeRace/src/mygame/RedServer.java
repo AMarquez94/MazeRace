@@ -55,7 +55,6 @@ public class RedServer extends SimpleApplication {
     protected final static int DAMAGE_BULLET = 25;
     //GLOBAL VARIABLES
     private static Server server;
-    private static LinkedBlockingQueue<ServerMessage> messageQueue;
     private static HostedConnection[] hostedConnections;
     private static LinkedBlockingQueue<AbstractMessage> redQueue;
     private BulletAppState bas;
@@ -133,7 +132,7 @@ public class RedServer extends SimpleApplication {
         rootNode.attachChild(shootables);
 
         seen = new boolean[MAX_PLAYERS][MAX_PLAYERS];
-        
+
         new ServerControlRed(this);
 
         //networking
@@ -173,14 +172,6 @@ public class RedServer extends SimpleApplication {
                 checkOtherPlayers(p);
             }
         }
-    }
-
-    private static void sendMessage(AbstractMessage message) {
-        messageQueue.add(new ServerMessage(null, message));
-    }
-
-    private static void sendMessage(Filter<HostedConnection> filter, AbstractMessage message) {
-        messageQueue.add(new ServerMessage(filter, message));
     }
 
     @Override
@@ -241,7 +232,7 @@ public class RedServer extends SimpleApplication {
         connectedPlayers--;
         shootables.detachChild(players[id]);
         players[id] = null;
-        sendMessage(Filters.in(hostedConnections), new DisconnectedPlayer(id));
+        broadcastRedMessage(new DisconnectedPlayer(id));
         timeouts[id] = 0;
     }
 
@@ -306,58 +297,6 @@ public class RedServer extends SimpleApplication {
 
     private static Quaternion arrayToQuaternion(float[] r) {
         return new Quaternion(r[0], r[1], r[2], r[3]);
-    }
-
-    /*
-     * Periodically sends messages.
-     */
-    private class Sender implements Runnable {
-
-        //Algorithm settings
-        private final long TIMEOUT = 300; //timeout in milliseconds
-        private final int QUORUM = 4; //quorum in amount of messages
-
-        public Sender() {
-        }
-
-        public void run() {
-            long timer; //declare timer
-
-            boolean timeout; //for debug. for printing send reason
-
-            while (QUORUM > 0) { //loop forever
-                if (messageQueue.size() > 0) { //wait until update is available
-                    timer = System.currentTimeMillis(); //set timer
-                    timeout = false; //for debug
-
-                    quorum_loop:
-                    while (messageQueue.size() < QUORUM) { //while quorum is not reached
-                        if (System.currentTimeMillis() - timer > TIMEOUT) { //check for timeout
-                            timeout = true;
-                            break quorum_loop;
-                        }
-                    }
-
-                    //send packets
-                    while (!messageQueue.isEmpty()) {
-                        ServerMessage message = messageQueue.poll();
-
-                        if (message.filter != null) {
-                            server.broadcast(message.filter, message.message);
-                        } else {
-                            server.broadcast(message.message);
-                        }
-                    }
-
-                    //debug
-                    if (timeout) {
-                        System.out.println("Messages sent by timeout.");
-                    } else {
-                        System.out.println("Messages sent by quorum.");
-                    }
-                }
-            }
-        }
     }
 
     private class MessageHandler implements MessageListener<HostedConnection> {
@@ -574,7 +513,7 @@ public class RedServer extends SimpleApplication {
                  */
 
                 //send message to tell clients that shot is fired
-                sendMessage(new Firing(id));
+                broadcastRedMessage(new Firing(id));
             }
         }
 
@@ -613,7 +552,7 @@ public class RedServer extends SimpleApplication {
                 final int id = findId(source);
 
                 if (players[id].getTeam() == Team.Blue) {
-                    sendMessage(Filters.in(hostedConnections), new BroadcastMessage(id, message.getMessage()));
+                    broadcastRedMessage( new BroadcastMessage(id, message.getMessage()));
                 }
             }
         }
@@ -626,7 +565,7 @@ public class RedServer extends SimpleApplication {
     protected static void changeGameState(ServerGameState newState) {
         if (!(state == newState)) {
             if (newState == ServerGameState.GameRunning) {
-                sendMessage(new Start());
+                broadcastRedMessage(new Start());
             } else if (newState == ServerGameState.GameStopped) {
             }
 

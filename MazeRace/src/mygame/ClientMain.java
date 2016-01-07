@@ -1234,7 +1234,8 @@ public class ClientMain extends SimpleApplication {
                             public Object call() throws Exception {
                                 //Set up the character. TODO does not include orientation (maybe not needed)
                                 setUpCharacter(id, teams[id], positions[id], nicknames[id], false);
-                                if (positions[id].distance(getPlayer().getPosition()) > Player.VIEW_DISTANCE) {
+                                if (getPlayer().getPosition()!= null && 
+                                        positions[id].distance(getPlayer().getPosition()) > Player.VIEW_DISTANCE) {
                                     players.get(id).show(false);
                                 }
                                 return null;

@@ -9,7 +9,6 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.jme3.network.AbstractMessage;
-import com.jme3.network.Filter;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
@@ -35,9 +34,9 @@ import maze.Maze;
 import mygame.Networking.*;
 
 /**
- * test
+ * Represents the single server of the game
  *
- * @author normenhansen
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class ServerMain extends SimpleApplication {
 
@@ -70,7 +69,10 @@ public class ServerMain extends SimpleApplication {
     //players being seen
     private boolean[][] seen;
 
-    //
+    /**
+     * Starts the Server
+     * @param args 
+     */
     public static void main(String[] args) {
         app = new ServerMain();
         app.start(JmeContext.Type.Headless);
@@ -80,6 +82,10 @@ public class ServerMain extends SimpleApplication {
         super(new StatsAppState());
     }
 
+    /**
+     * Init the server. This includes the connection with the clients, and some 
+     * variables.
+     */
     @Override
     public void simpleInitApp() {
         Networking.initialiseSerializables();
@@ -95,7 +101,6 @@ public class ServerMain extends SimpleApplication {
         }
 
         bas = new BulletAppState();
-        //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
         bas.getPhysicsSpace().enableDebug(assetManager);
 
@@ -109,19 +114,12 @@ public class ServerMain extends SimpleApplication {
         bluePlayers = 0;
 
         players = new ServerPlayer[MAX_PLAYERS];
-//        nicknames = new String[MAX_PLAYERS];
-//        for (int i = 0; i < nicknames.length; i++) {
-//            nicknames[i] = "";
-//        }
         hostedConnections = new HostedConnection[MAX_PLAYERS];
         redPlayersCon = new ArrayList<HostedConnection>();
         bluePlayersCon = new ArrayList<HostedConnection>();
 
         timeouts = new float[MAX_PLAYERS];
-//        for (int i = 0; i < MAX_PLAYERS; i++) {
-//            timeouts[i] = 0;
-//        }
-
+        
         state = ServerGameState.GameStopped;
         cam.setLocation(new Vector3f(0.74115396f, -70.0f, -150.33556f));
         this.pauseOnFocus = false;
@@ -132,9 +130,9 @@ public class ServerMain extends SimpleApplication {
 
         new ServerControl(this);
 
-
-        //networking
+        //Queue for receiving messages
         messageQueue = new LinkedBlockingQueue<AbstractMessage>();
+        //Thread for sending messages
         Thread t = new Thread(new Sender());
         t.start();
 
@@ -143,8 +141,9 @@ public class ServerMain extends SimpleApplication {
     @Override
     public void simpleUpdate(float tpf) {
         for (int i = 0; i < timeouts.length; i++) {
+            
+            /* Check all the player's timeouts. If one of them expires, disconnect it */
             if (timeouts[i] != 0) {
-                //System.out.println("Timeout " + i + " : " + timeouts[i]);
                 timeouts[i] = timeouts[i] - tpf;
                 if (timeouts[i] <= 0) {
                     disconnectPlayer(i);
@@ -152,7 +151,7 @@ public class ServerMain extends SimpleApplication {
             }
         }
         if (state == ServerGameState.GameStopped) {
-            //Send a Prepare every second. TODO implement this better.
+            /* Send a Prepare every second */
             if (periodic_threshold > 1) {
                 broadcastMessage(packPrepareMessage());
                 periodic_threshold = 0;
@@ -161,7 +160,10 @@ public class ServerMain extends SimpleApplication {
             }
         } else if (state == ServerGameState.GameRunning) {
             for (ServerPlayer p : players) {
-                if (p != null && p.getHasTreasure() && p.getWorldTranslation().distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
+                
+                /* Check if the player having the treasure has arrived its base */
+                if (p != null && p.getHasTreasure() && p.getWorldTranslation().
+                        distanceSquared(getSpawnZonePoint(p.getTeam())) < 100) {
 
                     ServerControl.changeServerState(ServerGameState.GameStopped);
 
@@ -170,6 +172,9 @@ public class ServerMain extends SimpleApplication {
                     
                     broadcastMessage(new End(p.getTeam()));
                 }
+                
+                /* Check the distance of all players, to indicate the client to
+                 render it or not */ 
                 checkOtherPlayers(p);
             }
         }
@@ -187,10 +192,18 @@ public class ServerMain extends SimpleApplication {
         //TODO: add render code
     }
 
+    /**
+     * @param id
+     * @return initial position corresponding to id passed as parameter
+     */
     public static Vector3f getInitialPosition(int id) {
         return initialPositions[id];
     }
 
+    /**
+     * @param team
+     * @return the spawn zone point of the team passed as parameter
+     */
     public static Vector3f getSpawnZonePoint(Team team) {
         if (team == Team.Blue) {
             return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
@@ -205,6 +218,11 @@ public class ServerMain extends SimpleApplication {
         super.destroy();
     }
 
+    /**
+     * @param nickname
+     * @return true if the nickname passed as parameter has been chosen for another
+     * player
+     */
     private boolean repeatedNickname(String nickname) {
         int i = 0;
         boolean rep = false;
@@ -219,7 +237,7 @@ public class ServerMain extends SimpleApplication {
     }
 
     /*
-     * Connects a player and returns its id
+     * Connects a player with nickname "nickname and returns its id
      */
     private int connectPlayer(String nickname, HostedConnection s) {
         int i = 0;
@@ -251,7 +269,12 @@ public class ServerMain extends SimpleApplication {
         }
         return i;
     }
-
+    
+    /**
+     * Disconnects player with id "id", and tells about that to the connected
+     * clients
+     * @param id 
+     */
     private void disconnectPlayer(int id) {
         if (players[id].getTeam() == Team.Blue) {
             bluePlayersCon.remove(hostedConnections[id]);
@@ -268,6 +291,9 @@ public class ServerMain extends SimpleApplication {
         timeouts[id] = 0;
     }
 
+    /**
+     * Initialize the initial positions array
+     */
     private void setUpInitialPositions() {
         initialPositions = new Vector3f[MAX_PLAYERS];
         try {
@@ -283,11 +309,14 @@ public class ServerMain extends SimpleApplication {
         } catch (Exception e) {
             System.out.println(e);
         }
-//        for (int i = 0; i < MAX_PLAYERS; i++) {
-//            initialPositions[i] = new Vector3f(0, 0, 0);
-//        }
     }
 
+    /**
+     * Selects team for the new player, based on how many players are connected
+     * in each team (They have to be balanced)
+     * @param id
+     * @return 
+     */
     private Team chooseTeam(int id) {
         if (redPlayers > bluePlayers) {
             bluePlayers++;
@@ -295,8 +324,10 @@ public class ServerMain extends SimpleApplication {
         } else if (bluePlayers > redPlayers) {
             redPlayers++;
             return Team.Red;
-        } //TODO RANDOM
+        }
         else {
+            
+            /* Random */
             if (Math.random() >= 0.5) {
                 bluePlayers++;
                 return Team.Blue;
@@ -307,6 +338,13 @@ public class ServerMain extends SimpleApplication {
         }
     }
 
+    
+    /**
+     * Checks if the other players are far from certain distance from player p.
+     * If they are further, sends a message to that player not to show the other.
+     * If they are closer, sends a message to that player to show him
+     * @param p 
+     */
     private void checkOtherPlayers(ServerPlayer p) {
         for (int i = 0; i < MAX_PLAYERS; i++) {
             if (p != null & players[i] != null && p != players[i]) {
@@ -326,6 +364,10 @@ public class ServerMain extends SimpleApplication {
         }
     }
 
+    /**
+     * @param r
+     * @return rotation from float[] to Quaternion
+     */
     private Quaternion arrayToQuaternion(float[] r) {
         return new Quaternion(r[0], r[1], r[2], r[3]);
     }
@@ -367,6 +409,9 @@ public class ServerMain extends SimpleApplication {
         }
     }
 
+    /**
+     * Handles the messages received from the Clients
+     */
     private class MessageHandler implements MessageListener<HostedConnection> {
 
         public void messageReceived(final HostedConnection source, final Message m) {
@@ -388,6 +433,11 @@ public class ServerMain extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an agregation message
+         * @param source
+         * @param m 
+         */
         private void actionAggregation(final HostedConnection source, final Message m) {
             final Aggregation aggregation = (Aggregation) m;
             //get messages
@@ -430,6 +480,11 @@ public class ServerMain extends SimpleApplication {
             }
         }
 
+        /**
+         * Process a connect message
+         * @param source
+         * @param m 
+         */
         private void actionConnect(final HostedConnection source, final Message m) {
             System.out.println("Connect request received");
             if (m instanceof Connect) {
@@ -442,7 +497,6 @@ public class ServerMain extends SimpleApplication {
                                 //TODO ID must be saved
                                 app.enqueue(new Callable() {
                                     public Object call() throws Exception {
-                                        //Set up the character. TODO does not include orientation (maybe not needed)
                                         int idNew = connectPlayer(nickname, source);
                                         broadcastMessage(
                                                 new NewPlayerConnected(idNew, players[idNew].getNickname(),
@@ -473,6 +527,11 @@ public class ServerMain extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an PlayerMoved message
+         * @param source
+         * @param m 
+         */
         private void actionPlayerMoved(final HostedConnection source, final Message m) {
             if (m instanceof PlayerMoved) {
 
@@ -498,6 +557,11 @@ public class ServerMain extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an MarkInput message
+         * @param source
+         * @param m 
+         */
         private void actionMarkInput(final HostedConnection source, final Message m) {
             if (m instanceof MarkInput) {
                 MarkInput message = (MarkInput) m;
@@ -527,6 +591,11 @@ public class ServerMain extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an FireInput message
+         * @param source
+         * @param m 
+         */
         private void actionFireInput(final HostedConnection source, final Message m) {
             if (m instanceof FireInput) {
 
@@ -540,7 +609,6 @@ public class ServerMain extends SimpleApplication {
                     public Object call() throws Exception {
                         if (state == ServerGameState.GameRunning) {
                             CollisionResults results = new CollisionResults();
-                            //Must be changed by the coordinates and direction of the character
                             Ray ray = new Ray(position, direction);
 
                             shootables.collideWith(ray, results);
@@ -578,30 +646,30 @@ public class ServerMain extends SimpleApplication {
                     }
                 });
 
-                /* TODO Calculate what it has hit.
-                 and send messages according to what it has hit.
-                 */
-
-                //send message to tell clients that shot is fired
                 server.broadcast(new Firing(id));
             }
         }
 
+        /**
+         * Processes an PickTreasureInput message
+         * @param source
+         * @param m 
+         */
         private void actionPickTreasureInput(final HostedConnection source, final Message m) {
             if (m instanceof PickTreasureInput) {
-                PickTreasureInput message = (PickTreasureInput) m;
-                Vector3f location = message.getLocation();
-                Vector3f direction = message.getDirection();
                 int id = findId(source);
 
 
-                //temporarily always allow pickup TODO
                 broadcastMessage(new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
-                //TODO set to false for other players
             }
         }
 
+        /**
+         * Processes an WantToRespawn message
+         * @param source
+         * @param m 
+         */
         private void actionWantToRespawn(final HostedConnection source, final Message m) {
             final int id = findId(source);
 
@@ -620,6 +688,11 @@ public class ServerMain extends SimpleApplication {
             broadcastMessage(new PlayerRespawn(id, position));
         }
 
+        /**
+         * Processes an SendMessage message
+         * @param source
+         * @param m 
+         */
         private void actionSendMessage(final HostedConnection source, final Message m) {
             if (m instanceof SendMessage) {
 
@@ -635,10 +708,18 @@ public class ServerMain extends SimpleApplication {
         }
     }
 
+    /**
+     * @return Server game state
+     */
     protected static ServerGameState getGameState() {
         return state;
     }
 
+    
+    /**
+     * Change the server state to the new one passed as parameter
+     * @param newState 
+     */
     protected static void changeGameState(ServerGameState newState) {
         if (!(state == newState)) {
             if (newState == ServerGameState.GameRunning) {
@@ -653,6 +734,9 @@ public class ServerMain extends SimpleApplication {
         }
     }
 
+    /**
+     * @return a packed PrepareMessage, with all the fields needed
+     */
     private Prepare packPrepareMessage() {
         Vector3f[] positions = new Vector3f[MAX_PLAYERS];
         float[][] orientations = new float[MAX_PLAYERS][4];
@@ -680,6 +764,9 @@ public class ServerMain extends SimpleApplication {
         return new Prepare(positions, orientations, nickname, teams);
     }
     
+    /**
+     * @return a packed Restart, with all the fields needed
+     */
     private static Restart packRestartMessage() {
         Vector3f[] positions = new Vector3f[MAX_PLAYERS];
         
@@ -701,6 +788,11 @@ public class ServerMain extends SimpleApplication {
         return new Restart(positions);
     }
 
+    
+    /**
+     * @param source
+     * @return id corresponding to the HostedConnection passed by parameter
+     */
     private int findId(HostedConnection source) {
         int i = 0;
         boolean find = false;
@@ -741,6 +833,12 @@ public class ServerMain extends SimpleApplication {
         return new float[]{result, distance};
     }
 
+    /**
+     * @param ray
+     * @param distance
+     * @return true if there wasn't a wall between the player and the other player
+     * shooted.
+     */
     private boolean checkWall(Ray ray, float distance) {
         float distanceWall = -1;
         CollisionResults resultWall = new CollisionResults();

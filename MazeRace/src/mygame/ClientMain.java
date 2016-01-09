@@ -338,7 +338,7 @@ public class ClientMain extends SimpleApplication {
                         float distance = player_pos.distance(treasure_pos);
 
                         if (distance < PICKUP_MARGIN) { //TODO test for a good value for PICKUP_MARGIN
-                            sendMessage(new PickTreasureInput(cam.getLocation(), cam.getDirection()));
+                            sendMessage(new PickTreasureInput());
                         }
                     }
                 } else if (name.equals("Pos") && !keyPressed) {

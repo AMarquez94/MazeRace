@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package mygame;
 
 import com.jme3.math.Vector3f;
@@ -13,8 +9,10 @@ import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
+ * Represents all the messages that the Client and the Server use for their
+ * communication
  *
- * @author NVE Project
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class Networking {
 
@@ -25,6 +23,9 @@ public class Networking {
     public static final int PORT_RED = 8000;
     public static final String HOST_RED = "127.0.0.1";
 
+    /**
+     * Resgisters all the message classes as serializables
+     */
     public static void initialiseSerializables() {
         Serializer.registerClass(Aggregation.class);
         Serializer.registerClass(Alive.class);
@@ -374,24 +375,9 @@ public class Networking {
     @Serializable
     public static class PickTreasureInput extends AbstractMessage {
 
-        private Vector3f location;
-        private Vector3f direction;
-
         public PickTreasureInput() {
         }
 
-        public PickTreasureInput(Vector3f location, Vector3f direction) {
-            this.location = location;
-            this.direction = direction;
-        }
-
-        public Vector3f getLocation() {
-            return location;
-        }
-
-        public Vector3f getDirection() {
-            return direction;
-        }
     }
 
     /**
@@ -820,6 +806,4 @@ public class Networking {
             return positions;
         }
     }
-    
-    
 }

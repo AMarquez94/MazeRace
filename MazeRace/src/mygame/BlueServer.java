@@ -509,9 +509,6 @@ public class BlueServer extends SimpleApplication {
 
         private void actionPickTreasureInput(final HostedConnection source, final Message m) {
             if (m instanceof PickTreasureInput) {
-                PickTreasureInput message = (PickTreasureInput) m;
-                Vector3f location = message.getLocation();
-                Vector3f direction = message.getDirection();
                 int id = findId(source);
 
 

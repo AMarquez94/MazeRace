@@ -2,7 +2,7 @@ package enums;
 
 /**
  * Represents the teams.
- * @author 
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public enum Team {
     Red, Blue

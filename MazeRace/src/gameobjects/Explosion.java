@@ -17,12 +17,12 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 
 /**
- *
- * @author Alejandro
+ * Represents the explosion made when a player dies
+ * 
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class Explosion extends Node{
     
-    private Vector3f position;
     private AssetManager assetManager;
     private AudioNode audio;
     private ParticleEmitter flame, flash, spark, roundspark, smoketrail, debris,
@@ -34,8 +34,13 @@ public class Explosion extends Node{
     private static final boolean POINT_SPRITE = true;
     private static final ParticleMesh.Type EMITTER_TYPE = POINT_SPRITE ? ParticleMesh.Type.Point : ParticleMesh.Type.Triangle;
     
+    /**
+     * Constructor of the Explosion class.
+     * @param position
+     * @param assetManager
+     * @param app 
+     */
     public Explosion(Vector3f position, AssetManager assetManager, SimpleApplication app){
-        this.position = position;
         this.assetManager = assetManager;
         
         createFlame();
@@ -57,6 +62,9 @@ public class Explosion extends Node{
         this.setLocalTranslation(position.x,position.y + 5f, position.z);
     }
     
+    /**
+     * Create the flame that is part of the explosion effect
+     */
     private void createFlame(){
         flame = new ParticleEmitter("Flame", EMITTER_TYPE, 32 * COUNT_FACTOR);
         flame.setSelectRandomImage(true);
@@ -80,6 +88,9 @@ public class Explosion extends Node{
         this.attachChild(flame);
     }
 
+    /**
+     * Create the flash that is part of the explosion effect
+     */
     private void createFlash(){
         flash = new ParticleEmitter("Flash", EMITTER_TYPE, 24 * COUNT_FACTOR);
         flash.setSelectRandomImage(true);
@@ -103,6 +114,9 @@ public class Explosion extends Node{
         this.attachChild(flash);
     }
 
+    /**
+     * Create the round spark that is part of the explosion effect
+     */
     private void createRoundSpark(){
         roundspark = new ParticleEmitter("RoundSpark", EMITTER_TYPE, 20 * COUNT_FACTOR);
         roundspark.setStartColor(new ColorRGBA(1f, 0.29f, 0.34f, (float) (1.0 / COUNT_FACTOR_F)));
@@ -125,6 +139,9 @@ public class Explosion extends Node{
         this.attachChild(roundspark);
     }
 
+    /**
+     * Create the spark that is part of the explosion effect
+     */
     private void createSpark(){
         spark = new ParticleEmitter("Spark", ParticleMesh.Type.Triangle, 30 * COUNT_FACTOR);
         spark.setStartColor(new ColorRGBA(1f, 0.8f, 0.36f, (float) (1.0f / COUNT_FACTOR_F)));
@@ -146,14 +163,15 @@ public class Explosion extends Node{
         this.attachChild(spark);
     }
 
+    /**
+     * Create the smoke trail that is part of the explosion effect
+     */
     private void createSmokeTrail(){
         smoketrail = new ParticleEmitter("SmokeTrail", ParticleMesh.Type.Triangle, 22 * COUNT_FACTOR);
         smoketrail.setStartColor(new ColorRGBA(1f, 0.8f, 0.36f, (float) (1.0f / COUNT_FACTOR_F)));
         smoketrail.setEndColor(new ColorRGBA(1f, 0.8f, 0.36f, 0f));
         smoketrail.setStartSize(.2f);
         smoketrail.setEndSize(1f);
-
-//        smoketrail.setShape(new EmitterSphereShape(Vector3f.ZERO, 1f));
         smoketrail.setFacingVelocity(true);
         smoketrail.setParticlesPerSec(0);
         smoketrail.setGravity(0, 1, 0);
@@ -169,6 +187,9 @@ public class Explosion extends Node{
         this.attachChild(smoketrail);
     }
 
+    /**
+     * Create the debris that is part of the explosion effect
+     */
     private void createDebris(){
         debris = new ParticleEmitter("Debris", ParticleMesh.Type.Triangle, 15 * COUNT_FACTOR);
         debris.setSelectRandomImage(true);
@@ -178,8 +199,6 @@ public class Explosion extends Node{
         debris.setEndColor(new ColorRGBA(.5f, 0.5f, 0.5f, 0f));
         debris.setStartSize(.2f);
         debris.setEndSize(.2f);
-
-//        debris.setShape(new EmitterSphereShape(Vector3f.ZERO, .05f));
         debris.setParticlesPerSec(0);
         debris.setGravity(0, 12f, 0);
         debris.setLowLife(1.4f);
@@ -194,16 +213,16 @@ public class Explosion extends Node{
         this.attachChild(debris);
     }
 
+    /**
+     * Create the shockwave that is part of the explosion effect
+     */
     private void createShockwave(){
         shockwave = new ParticleEmitter("Shockwave", ParticleMesh.Type.Triangle, 1 * COUNT_FACTOR);
-//        shockwave.setRandomAngle(true);
         shockwave.setFaceNormal(Vector3f.UNIT_Y);
         shockwave.setStartColor(new ColorRGBA(.48f, 0.17f, 0.01f, (float) (.8f / COUNT_FACTOR_F)));
         shockwave.setEndColor(new ColorRGBA(.48f, 0.17f, 0.01f, 0f));
-
         shockwave.setStartSize(0f);
         shockwave.setEndSize(7f);
-
         shockwave.setParticlesPerSec(0);
         shockwave.setGravity(0, 0, 0);
         shockwave.setLowLife(0.5f);
@@ -218,6 +237,9 @@ public class Explosion extends Node{
         this.attachChild(shockwave);
     }
     
+    /**
+     * Makes the explosion effect
+     */
     public void start(){
         flash.emitAllParticles();
         spark.emitAllParticles();

@@ -24,13 +24,13 @@ import com.jme3.scene.shape.Quad;
 import enums.Team;
 
 /**
- * Represents a player.
+ * Represents a player processed by the client side
  *
- * @author root
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class Player extends Node {
+    
     //Objects
-
     private Node player, treasure, gun, pivot_gun;
     private AudioNode audio_gun;
     private AudioNode audio_hit;
@@ -58,12 +58,20 @@ public class Player extends Node {
     private ParticleEmitter flash;
     private static final int COUNT_FACTOR = 1;
     private static final float COUNT_FACTOR_F = 1f;
+    private static final boolean POINT_SPRITE = true;
+    private static final ParticleMesh.Type EMITTER_TYPE = POINT_SPRITE ? ParticleMesh.Type.Point : ParticleMesh.Type.Triangle;
     //Other
     public static final int VIEW_DISTANCE = 200;
 
-    private static final boolean POINT_SPRITE = true;
-    private static final ParticleMesh.Type EMITTER_TYPE = POINT_SPRITE ? ParticleMesh.Type.Point : ParticleMesh.Type.Triangle;
-
+    /**
+     * Constructor of Player class.
+     * @param team Team of the player
+     * @param position Position of the player
+     * @param nickname Nickname of the player
+     * @param app
+     * @param me True it is the player controlled locally. False if controlled by
+     * other users
+     */
     public Player(Team team, Vector3f position, String nickname, SimpleApplication app, boolean me) {
         this.team = team;
         this.position = position;
@@ -77,7 +85,7 @@ public class Player extends Node {
         player = (Node) app.getAssetManager().loadModel("Models/Oto/Oto.mesh.xml"); // You can set the model directly to the player. (We just wanted to explicitly show that it's a spatial.)
         this.attachChild(player); // add it to the wrapper
         
-        
+        //Pistol
         pivot_gun = new Node();
         gun = (Node) app.getAssetManager().loadModel("Models/gun/gun4.j3o");
         createFlash(app);
@@ -85,23 +93,7 @@ public class Player extends Node {
         pivot_gun.attachChild(gun);
         gun.attachChild(flash);
         pivot_gun.move(0,2.5f,1f);
-//        gun.move(0,0,0);
         flash.move(0,0,2.3f);
-        
-        //TO BE REMOVED
-//        gun.move(0,1.0f,1.2f);
-        
-//        player.attachChild(pivot_gun);
-////        pivot_gun.setLocalTranslation(0,0,0.5f);
-//        pivot_gun.attachChild(gun);/* A colored lit cube. Needs light source! */ 
-//        flash.move(0,1.2f,2f);
-//        gun.move(0, 0, 1.2f);
-//        pivot_gun.move(0, 1f, 0);
-//        pivot_gun.rotate(1.2f,0,0);
-////        pivot_gun.rotate(1.12f, 0, 0);
-//        // Position player
-//        this.setLocalTranslation(position);
-        
         
         player.move(0, 3.5f, 0); // adjust position to ensure collisions occur correctly.
         player.setLocalScale(0.5f); // optionally adjust scale of model
@@ -136,6 +128,7 @@ public class Player extends Node {
             nicknameNode.setLocalTranslation(guiFont.getLineWidth(nickname)*-0.05f, 10.5f, 0);
             nicknameNode.addControl(bc);
 
+            //Healthbar
             BillboardControl billboard = new BillboardControl();
             healthbar = new Geometry("healthbar", new Quad(WIDTH_HEALTH_BAR, 0.5f));
             Material mathb = new Material(app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
@@ -172,28 +165,34 @@ public class Player extends Node {
         characterControl = new BetterCharacterControl(1.5f, 6f, 1f); // construct character. (If your character bounces, try increasing height and weight.)
         this.addControl(characterControl); // attach to wrapper
 
-        // set basic physical properties
+        //Basic physical properties
         characterControl.setJumpForce(new Vector3f(0, JUMP_FORCE, 0));
         characterControl.setGravity(new Vector3f(0, GRAVITY, 0));
         characterControl.warp(position); // warp character into landscape at particular location
 
+        //Prints the available animations for the model
         System.out.println("Available animations for this model are:");
         for (String c : animationControl.getAnimationNames()) {
             System.out.println(c);
         }
         
         if(me){
+            
+            //If the player is controlled locally, do not show it
             player.setCullHint(CullHint.Always);
         }
-        
-        System.out.println(pivot_gun.getLocalTranslation());
-        System.out.println(gun.getLocalTranslation());
     }
 
+    /**
+     * @return the player's team
+     */
     public Team getTeam() {
         return this.team;
     }
 
+    /**
+     * @return the player's team colour
+     */
     public ColorRGBA getTeamColor() {
         if (this.team == Team.Red) {
             return ColorRGBA.Red;
@@ -205,54 +204,95 @@ public class Player extends Node {
         }
     }
 
+    /**
+     * Adds the player's model to the physics space
+     * @param bas BulletAppState
+     */
     public void addToPhysicsSpace(BulletAppState bas) {
         bas.getPhysicsSpace().add(characterControl);
         bas.getPhysicsSpace().addAll(this);
     }
     
+    /**
+     * Removes the player's model from the physics space
+     * @param bas BulletAppState
+     */
     public void removeFromPhysicsSpace(BulletAppState bas){
         bas.getPhysicsSpace().remove(characterControl);
         bas.getPhysicsSpace().removeAll(this);
     }
 
+    /**
+     * Creates a listener for the animation events
+     * @param listener 
+     */
     public void addAnimEventListener(AnimEventListener listener) {
         animationControl.addListener(listener);
     }
 
+    /**
+     * @return The control class of the player
+     */
     public BetterCharacterControl getCharacterControl() {
         return characterControl;
     }
 
+    /**
+     * @return The animation channel of the player
+     */
     public AnimChannel getAnimChannel() {
         return animationChannel;
     }
 
+    /**
+     * Set the position of the player to the position passed as parameter
+     * @param position 
+     */
     public void setPosition(Vector3f position) {
-        //this.setLocalTranslation(position);
         this.position = position;
     }
-
+    
+    /**
+     * @return Player's position
+     */
     public Vector3f getPosition() {
         return this.position;
     }
 
+    /**
+     * Set player's nickname to the nickname passed as parameter
+     * @param nick 
+     */
     public void setNickname(String nick) {
         this.nickname = nick;
     }
 
+    /**
+     * @return Player's nickname
+     */
     public String getNickname() {
         return this.nickname;
     }
 
+    /**
+     * Plays an instance of the gun audio
+     */
     public void playGunAudio() {
         this.audio_gun.playInstance();
         flash.emitAllParticles();
     }
     
+    /**
+     * Plays an instance of the hit audio
+     */
     public void playHitAudio(){
         this.audio_hit.playInstance();
     }
 
+    /**
+     * Makes the player walk to the position passed as parameter
+     * @param position 
+     */
     public void walkToPosition(Vector3f position) {
         Vector3f old_pos = this.position.clone();
         Vector3f dir = position.subtract(old_pos).normalize();
@@ -265,10 +305,17 @@ public class Player extends Node {
         this.setPosition(position);
     }
     
+    /**
+     * @return True if player has the treasure. False otherwise
+     */
     public boolean hasTreasure() {
         return this.hasChild(treasure);
     }
     
+    /**
+     * Activates the billboard text if activate is true. False otherwise.
+     * @param activate 
+     */
     public void setTreasureMode(boolean activate) {
         if(activate) { //activate
             this.attachChild(treasure);
@@ -277,10 +324,17 @@ public class Player extends Node {
         }
     }
     
+    /**
+     * @return player's health
+     */
     public int getHealth(){
         return this.health;
     }
     
+    /**
+     * Sets player's health to the health passed as parameter
+     * @param health
+     */
     public void setHealth(int health){
         this.health = health;
         if(!me){
@@ -288,11 +342,18 @@ public class Player extends Node {
         }
     }
     
+    /**
+     * Stop showing the player, and disable its control
+     */
     public void deadPlayer(){
         this.setCullHint(CullHint.Always);
         animationControl.setEnabled(false);
     }
     
+    /**
+     * Respawn player in the position passed as parameter
+     * @param position 
+     */
     public void playerRespawn(Vector3f position){
         animationControl.setEnabled(true);
         characterControl.setApplyPhysicsLocal(true);
@@ -305,6 +366,10 @@ public class Player extends Node {
         this.setPosition(position);
     }
     
+    /**
+     * Creates the flash particle for when the player shoots
+     * @param app 
+     */
     private void createFlash(SimpleApplication app){
         flash = new ParticleEmitter("Flash", EMITTER_TYPE, 24 * COUNT_FACTOR);
         flash.setSelectRandomImage(true);
@@ -327,11 +392,19 @@ public class Player extends Node {
         flash.setMaterial(mat);
     }
     
+    /**
+     * Move the player's turret according where it is aiming
+     * @param direction 
+     */
     public void aimGun(Vector3f direction){
         
         pivot_gun.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.asin(direction.y),new Vector3f(1,0,0)));
     }
     
+    /**
+     * Shows the player if show is true. False otherwise.
+     * @param show 
+     */
     public void show(boolean show){
         if(show && this.health>0){
             this.setCullHint(CullHint.Never);

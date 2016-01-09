@@ -10,13 +10,19 @@ import enums.Team;
 /**
  * Represents the mark the players can place on the environment.
  *
- * @author
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class Mark extends Geometry {
 
     private Team team;
     private ColorRGBA color;
     
+    /**
+     * Constructor of the class Mark. Creates a mark of the team passed by
+     * parameter
+     * @param team
+     * @param app 
+     */
     public Mark(Team team, SimpleApplication app) {
         if(team == Team.Red) {
             this.color = ColorRGBA.Red;
@@ -35,10 +41,17 @@ public class Mark extends Geometry {
         this.setMaterial(mark_mat);
     }
    
+    
+    /**
+     * @return The color of the mark
+     */
     public ColorRGBA getColor() {
         return this.color;
     }
     
+    /**
+     * @return The team that put the mark
+     */
     public Team getTeam() {
         return this.team;
     }

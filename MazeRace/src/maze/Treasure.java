@@ -13,16 +13,20 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 
 /**
+ * Represents the treasure that the players have to pick
  *
- * @author NVE Project
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class Treasure extends Node {
 
-    //#TODO change treausre
-    //#TODO change location
     private SimpleApplication simpleApplication;
     private AssetManager assetManager;
 
+    /**
+     * Constructor of the class Treasure
+     * @param simpleApplication
+     * @param bas 
+     */
     public Treasure(SimpleApplication simpleApplication, BulletAppState bas) {
         this.setName("Treasure");
         this.simpleApplication = simpleApplication;
@@ -36,10 +40,17 @@ public class Treasure extends Node {
         
     }
 
+    /**
+     * @return Treasure's position
+     */
     public Vector3f getPosition() {
         return this.getLocalTranslation();
     }
 
+    /**
+     * Set Treasure position to the position passed as parameter
+     * @param position 
+     */
     public void setPosition(Vector3f position) {
         this.setLocalTranslation(position);
     }

@@ -10,7 +10,6 @@ import com.jme3.math.Ray;
 import com.jme3.math.Vector3f;
 import com.jme3.network.AbstractMessage;
 import com.jme3.network.Client;
-import com.jme3.network.Filter;
 import com.jme3.network.Filters;
 import com.jme3.network.HostedConnection;
 import com.jme3.network.Message;
@@ -35,14 +34,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import maze.Maze;
-import static mygame.BlueServer.DAMAGE_BULLET;
-import static mygame.BlueServer.MAX_PLAYERS;
 import mygame.Networking.*;
 
 /**
- * test
+ * Represents the red server of the game
  *
- * @author normenhansen
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class RedServer extends SimpleApplication {
 
@@ -59,8 +56,6 @@ public class RedServer extends SimpleApplication {
     private static LinkedBlockingQueue<AbstractMessage> redQueue;
     private BulletAppState bas;
     private static ServerPlayer[] players;
-    private String[] nicknames;
-    private static int connectedPlayers;
     private int redPlayers;
     private int bluePlayers;
     private static Vector3f treasureLocation;
@@ -87,6 +82,10 @@ public class RedServer extends SimpleApplication {
         super(new StatsAppState());
     }
 
+    /**
+     * Init the server. This includes the connection with the clients, and some 
+     * variables.
+     */
     @Override
     public void simpleInitApp() {
         Networking.initialiseSerializables();
@@ -100,7 +99,6 @@ public class RedServer extends SimpleApplication {
         }
 
         bas = new BulletAppState();
-        //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
         bas.getPhysicsSpace().enableDebug(assetManager);
 
@@ -109,21 +107,13 @@ public class RedServer extends SimpleApplication {
         terrain = new Maze(this).setUpWorld(rootNode, bas);
         setUpInitialPositions();
         server.addMessageListener(new MessageHandler());
-        connectedPlayers = 0;
         redPlayers = 0;
         bluePlayers = 0;
 
         players = new ServerPlayer[MAX_PLAYERS];
-//        nicknames = new String[MAX_PLAYERS];
-//        for (int i = 0; i < nicknames.length; i++) {
-//            nicknames[i] = "";
-//        }
         hostedConnections = new HostedConnection[MAX_PLAYERS];
 
         timeouts = new float[MAX_PLAYERS];
-//        for (int i = 0; i < MAX_PLAYERS; i++) {
-//            timeouts[i] = TIMEOUT;
-//        }
 
         state = ServerGameState.GameStopped;
         cam.setLocation(new Vector3f(0.74115396f, -70.0f, -150.33556f));
@@ -145,7 +135,6 @@ public class RedServer extends SimpleApplication {
     public void simpleUpdate(float tpf) {
         for (int i = 0; i < timeouts.length; i++) {
             if (timeouts[i] != 0) {
-                //System.out.println("Timeout " + i + " : " + timeouts[i]);
                 timeouts[i] = timeouts[i] - tpf;
                 if (timeouts[i] <= 0) {
                     disconnectPlayer(i);
@@ -153,7 +142,7 @@ public class RedServer extends SimpleApplication {
             }
         }
         if (state == ServerGameState.GameStopped) {
-            //Send a Prepare every second. TODO implement this better.
+            //Send a Prepare every second.
             if (periodic_threshold > 1) {
 
                 broadcastRedMessage(packPrepareMessage());
@@ -179,10 +168,18 @@ public class RedServer extends SimpleApplication {
         //TODO: add render code
     }
 
+    /**
+     * @param id
+     * @return initial position corresponding to id passed as parameter
+     */
     public static Vector3f getInitialPosition(int id) {
         return initialPositions[id];
     }
 
+    /**
+     * @param team
+     * @return the spawn zone point of the team passed as parameter
+     */
     public static Vector3f getSpawnZonePoint(Team team) {
         if (team == Team.Blue) {
             return new Vector3f(3.4365673f, -100.00009f, -252.54404f);
@@ -197,31 +194,21 @@ public class RedServer extends SimpleApplication {
         super.destroy();
     }
 
-    private boolean repeatedNickname(String nickname) {
-        int i = 0;
-        boolean rep = false;
-        while (i < players.length && !rep) {
-            if (players[i] != null && players[i].getNickname().equals(nickname)) {
-                rep = true;
-            } else {
-                i++;
-            }
-        }
-        return rep;
-    }
-
     /*
      * Connects a player and returns its id
      */
     private static void connectPlayer(String nickname, Team team, HostedConnection s, int id) {
         players[id] = new ServerPlayer(id, team, initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2],
                 nickname, app);
-        //players[i].addToPhysicsSpace(bas);
         hostedConnections[id] = s;
-        connectedPlayers++;
         shootables.attachChild(players[id]);
     }
 
+    /**
+     * Disconnects player with id "id", and tells about that to the connected
+     * clients
+     * @param id 
+     */
     private void disconnectPlayer(int id) {
         if (players[id].getTeam() == Team.Blue) {
             bluePlayers--;
@@ -229,15 +216,16 @@ public class RedServer extends SimpleApplication {
             redPlayers--;
         }
         hostedConnections[id] = null;
-        connectedPlayers--;
         shootables.detachChild(players[id]);
         players[id] = null;
         broadcastRedMessage(new DisconnectedPlayer(id));
         timeouts[id] = 0;
     }
 
+    /**
+     * Initialize the initial positions array
+     */
     private void setUpInitialPositions() {
-        //#TODO get inital positions from LS
         initialPositions = new Vector3f[MAX_PLAYERS];
         try {
             //team 1 (color?)
@@ -252,30 +240,14 @@ public class RedServer extends SimpleApplication {
         } catch (Exception e) {
             System.out.println(e);
         }
-//        for (int i = 0; i < MAX_PLAYERS; i++) {
-//            initialPositions[i] = new Vector3f(0, 0, 0);
-//        }
     }
 
-    private Team chooseTeam(int id) {
-        if (redPlayers > bluePlayers) {
-            bluePlayers++;
-            return Team.Blue;
-        } else if (bluePlayers > redPlayers) {
-            redPlayers++;
-            return Team.Red;
-        } //TODO RANDOM
-        else {
-            if (Math.random() >= 0.5) {
-                bluePlayers++;
-                return Team.Blue;
-            } else {
-                redPlayers++;
-                return Team.Red;
-            }
-        }
-    }
-
+    /**
+     * Checks if the other players are far from certain distance from player p.
+     * If they are further, sends a message to that player not to show the other.
+     * If they are closer, sends a message to that player to show him
+     * @param p 
+     */
     private void checkOtherPlayers(ServerPlayer p) {
         for (int i = 0; i < MAX_PLAYERS; i++) {
             if (p != null & players[i] != null && p != players[i]) {
@@ -295,10 +267,17 @@ public class RedServer extends SimpleApplication {
         }
     }
 
+    /**
+     * @param r
+     * @return rotation from float[] to Quaternion
+     */
     private static Quaternion arrayToQuaternion(float[] r) {
         return new Quaternion(r[0], r[1], r[2], r[3]);
     }
 
+    /**
+     * Handles the messages received from the Clients
+     */
     private class MessageHandler implements MessageListener<HostedConnection> {
 
         public void messageReceived(final HostedConnection source, final Message m) {
@@ -320,6 +299,11 @@ public class RedServer extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an agregation message
+         * @param source
+         * @param m 
+         */
         private void actionAggregation(final HostedConnection source, final Message m) {
             final Aggregation aggregation = (Aggregation) m;
             //get messages
@@ -362,19 +346,22 @@ public class RedServer extends SimpleApplication {
             }
         }
 
+        /**
+         * Process a connect message
+         * @param source
+         * @param m 
+         */
         private void actionConnect(final HostedConnection source, final Message m) {
             if (m instanceof Connect) {
                 Connect message = (Connect) m;
                 final String nickname = message.getNickname();
 
-                //TODO ID must be saved
                 app.enqueue(new Callable() {
                     public Object call() throws Exception {
                         //Set up the character. TODO does not include orientation (maybe not needed)
                         while (!nicknameToId.containsKey(nickname)) {
                         }
                         int idNew = nicknameToId.get(nickname);
-//                        int idNew = 0;
                         connectPlayer(nickname, Team.Red, source, idNew);
                         broadcastRedMessage(
                                 new NewPlayerConnected(idNew, players[idNew].getNickname(),
@@ -387,8 +374,6 @@ public class RedServer extends SimpleApplication {
                                         packPrepareMessage());
                             }
                         }, 200);
-//                        broadcastRedMessage(
-//                                packPrepareMessage());
                         broadcastRedMessage(new TreasureDropped(treasureLocation));
 
                         clientBlueServer.send(new NewPlayerConnected(idNew, players[idNew].getNickname(),
@@ -399,6 +384,11 @@ public class RedServer extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an PlayerMoved message
+         * @param source
+         * @param m 
+         */
         private void actionPlayerMoved(final HostedConnection source, final Message m) {
             if (m instanceof PlayerMoved) {
 
@@ -426,6 +416,11 @@ public class RedServer extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an MarkInput message
+         * @param source
+         * @param m 
+         */
         private void actionMarkInput(final HostedConnection source, final Message m) {
             if (m instanceof MarkInput) {
                 System.out.println("RedServer: Got Mark Input");
@@ -441,7 +436,6 @@ public class RedServer extends SimpleApplication {
                         if (state == ServerGameState.GameRunning) {
                             CollisionResults results = new CollisionResults();
 
-                            //Must be changed by the coordinates and direction of the character
                             Ray ray = new Ray(position, direction);
                             terrain.collideWith(ray, results);
 
@@ -458,6 +452,11 @@ public class RedServer extends SimpleApplication {
             }
         }
 
+        /**
+         * Processes an FireInput message
+         * @param source
+         * @param m 
+         */
         private void actionFireInput(final HostedConnection source, final Message m) {
             if (m instanceof FireInput) {
 
@@ -508,29 +507,31 @@ public class RedServer extends SimpleApplication {
                     }
                 });
 
-                /* TODO Calculate what it has hit.
-                 and send messages according to what it has hit.
-                 */
-
                 //send message to tell clients that shot is fired
                 broadcastRedMessage(new Firing(id));
             }
         }
 
+        /**
+         * Processes an PickTreasureInput message
+         * @param source
+         * @param m 
+         */
         private void actionPickTreasureInput(final HostedConnection source, final Message m) {
             if (m instanceof PickTreasureInput) {
                 int id = findId(source);
 
-
-                //temporarily always allow pickup TODO
-
                 broadcastRedMessage(new TreasurePicked(findId(source)));
                 clientBlueServer.send(new TreasurePicked(findId(source)));
                 players[id].setHasTreasure(true);
-                //TODO set to false for other players
             }
         }
 
+        /**
+         * Processes an WantToRespawn message
+         * @param source
+         * @param m 
+         */
         private void actionWantToRespawn(final HostedConnection source, final Message m) {
             final int id = findId(source);
 
@@ -542,6 +543,11 @@ public class RedServer extends SimpleApplication {
             clientBlueServer.send(new PlayerRespawn(id, initialPositions[MAX_PLAYERS / 2 + id % MAX_PLAYERS / 2]));
         }
 
+        /**
+         * Processes an SendMessage message
+         * @param source
+         * @param m 
+         */
         private void actionSendMessage(final HostedConnection source, final Message m) {
             if (m instanceof SendMessage) {
 
@@ -555,10 +561,17 @@ public class RedServer extends SimpleApplication {
         }
     }
 
+    /**
+     * @return Server game state
+     */
     protected static ServerGameState getGameState() {
         return state;
     }
 
+    /**
+     * Change the server state to the new one passed as parameter
+     * @param newState 
+     */
     protected static void changeGameState(ServerGameState newState) {
         if (!(state == newState)) {
             if (newState == ServerGameState.GameRunning) {
@@ -570,6 +583,9 @@ public class RedServer extends SimpleApplication {
         }
     }
 
+    /**
+     * @return a packed PrepareMessage, with all the fields needed
+     */
     private static Prepare packPrepareMessage() {
         Vector3f[] positions = new Vector3f[MAX_PLAYERS];
         float[][] orientations = new float[MAX_PLAYERS][4];
@@ -597,6 +613,10 @@ public class RedServer extends SimpleApplication {
         return new Prepare(positions, orientations, nickname, teams);
     }
 
+    /**
+     * @param source
+     * @return id corresponding to the HostedConnection passed by parameter
+     */
     private static int findId(HostedConnection source) {
         int i = 0;
         boolean find = false;
@@ -636,6 +656,9 @@ public class RedServer extends SimpleApplication {
         return result;
     }
 
+    /**
+     * Connects the Red server with the Login Server and the Blue Server
+     */
     protected static void connect() {
         try {
             System.out.println("RedServer: Try to connect clients");
@@ -653,6 +676,9 @@ public class RedServer extends SimpleApplication {
         clientLoginServer.send(new LoginConnected("red"));
     }
 
+    /**
+     * Listener for the LoginServer messages
+     */
     private static class LoginServerListener implements MessageListener<Client> {
 
         public void messageReceived(Client source, Message m) {
@@ -718,6 +744,9 @@ public class RedServer extends SimpleApplication {
         }
     }
 
+    /**
+     * Listener for the Blue Server messages
+     */
     private static class BlueServerListener implements MessageListener<HostedConnection> {
 
         public void messageReceived(HostedConnection source, Message m) {
@@ -738,6 +767,11 @@ public class RedServer extends SimpleApplication {
             }
         }
 
+        /**
+         * Process message m
+         * @param source
+         * @param m 
+         */
         public void processMessage(HostedConnection source, Message m) {
 
             if (m instanceof PutMark) {

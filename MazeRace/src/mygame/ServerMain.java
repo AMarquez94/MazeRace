@@ -244,7 +244,7 @@ public class ServerMain extends SimpleApplication {
         boolean find = false;
         while (i < players.length && !find) {
             if (players[i] == null) {
-                Team team = chooseTeam(i);
+                Team team = chooseTeam();
                 Vector3f position;
                 if (team == Team.Blue) {
                     position = initialPositions[i % MAX_PLAYERS / 2];
@@ -317,7 +317,7 @@ public class ServerMain extends SimpleApplication {
      * @param id
      * @return 
      */
-    private Team chooseTeam(int id) {
+    private Team chooseTeam() {
         if (redPlayers > bluePlayers) {
             bluePlayers++;
             return Team.Blue;

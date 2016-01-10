@@ -61,9 +61,9 @@ import maze.Treasure;
 import static mygame.ServerMain.*;
 
 /**
- * MazeRace (client).
- *
- * @author NVE Project
+ * Represents the client of the game
+ * 
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class ClientMain extends SimpleApplication {
 
@@ -75,9 +75,6 @@ public class ClientMain extends SimpleApplication {
     private Node markNode = new Node("Marks");
     private Node playerNode = new Node("Players");
     private Treasure treasureNode = null;
-    //terrain
-    private TerrainQuad terrain;
-    private Material mat_terrain;
     //own id
     private static int id;
     //players
@@ -135,12 +132,14 @@ public class ClientMain extends SimpleApplication {
         app.start();
     }
 
+    /**
+     * Init some variables and connections of the client
+     */
     @Override
     public void simpleInitApp() {
         state = ClientGameState.NicknameScreen;
         Networking.initialiseSerializables();
 
-        //flyCam.setEnabled(false);
         setUpNetworking();
         this.pauseOnFocus = false;
 
@@ -161,7 +160,6 @@ public class ClientMain extends SimpleApplication {
         //Set up the environment
         bas = new BulletAppState();
 
-        //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bas);
         setUpGraph();
         setUpLight();
@@ -177,6 +175,9 @@ public class ClientMain extends SimpleApplication {
         tmpQuat = new Quaternion();
     }
 
+    /**
+     * @return local player 
+     */
     private Player getPlayer() {
         return this.players.get(id);
     }
@@ -217,9 +218,11 @@ public class ClientMain extends SimpleApplication {
         players.get(id).removeFromPhysicsSpace(bas);
         players.get(id).detachAllChildren();
         players.remove(id);
-        //TODO remove avatar from the scene graph
     }
 
+    /**
+     * Established the connection with the server
+     */
     private void setUpNetworking() {
         //Start connection to login server
         try {
@@ -240,6 +243,9 @@ public class ClientMain extends SimpleApplication {
         t.start();
     }
 
+    /**
+     * Creates the Nodes related to the players and marks
+     */
     private void setUpGraph() {
         rootNode.attachChild(markNode);
         rootNode.attachChild(playerNode);
@@ -262,6 +268,10 @@ public class ClientMain extends SimpleApplication {
         players.get(id).addToPhysicsSpace(bas);
         rootNode.attachChild(players.get(id));
     }
+    
+    /**
+     * Inits the listener for the player
+     */
     private AnimEventListener playerAnimListener = new AnimEventListener() {
         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
         }
@@ -270,6 +280,9 @@ public class ClientMain extends SimpleApplication {
         }
     };
 
+    /**
+     * Inits the keys mapping
+     */
     private void setUpKeys() {
         inputManager.addMapping("CharLeft", new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("CharRight", new KeyTrigger(KeyInput.KEY_D));
@@ -337,13 +350,12 @@ public class ClientMain extends SimpleApplication {
                         Vector3f treasure_pos = treasureNode.getWorldTranslation();
                         float distance = player_pos.distance(treasure_pos);
 
-                        if (distance < PICKUP_MARGIN) { //TODO test for a good value for PICKUP_MARGIN
+                        if (distance < PICKUP_MARGIN) {
                             sendMessage(new PickTreasureInput());
                         }
                     }
                 } else if (name.equals("Pos") && !keyPressed) {
                     System.out.println(getPlayer().getWorldTranslation());
-                    //System.out.println(cam.getDirection());
 
                 } else if (name.equals("Chat") && !keyPressed) {
                     message.setText("");
@@ -356,7 +368,6 @@ public class ClientMain extends SimpleApplication {
                 }
             } else if (state == ClientGameState.Dead) {
 
-                //Maybe better binding?
                 if (name.equals("Shoot") && !keyPressed) {
 
                     sendMessage(new WantToRespawn());
@@ -378,6 +389,9 @@ public class ClientMain extends SimpleApplication {
         }
     };
 
+    /**
+     * Init the CrossHairs for aiming
+     */
     private void initCrossHairs() {
         setDisplayStatView(false);
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
@@ -389,6 +403,9 @@ public class ClientMain extends SimpleApplication {
         guiNode.attachChild(ch);
     }
 
+    /**
+     * Init the healthbar for the local player
+     */
     private void initHealthBar() {
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         healthbar = new Geometry("healthbar", new Quad(128, 19));
@@ -409,16 +426,21 @@ public class ClientMain extends SimpleApplication {
         guiNode.attachChild(healthtext);
     }
 
+    /**
+     * Inits the player message to show when the player dies
+     */
     private void initDeadPlayerMessage() {
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         deadPlayerText = new BitmapText(guiFont, false);
         deadPlayerText.setColor(getPlayer().getTeamColor());
         deadPlayerText.setSize(guiFont.getCharSet().getRenderedSize() * 2);
-//        deadPlayerText.setText("+"); // crosshairs
-//        deadPlayerText.setLocalTranslation(settings.getWidth() / 2 - ch.getLineWidth() / 2, settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
         guiNode.attachChild(deadPlayerText);
     }
 
+    /**
+     * Inits the geometries that indicate the direction where the player was
+     * shooted from.
+     */
     private void initShootingIndicators() {
         Mesh trapezoid = createTrapezoid();
 
@@ -457,6 +479,10 @@ public class ClientMain extends SimpleApplication {
         }
     }
 
+    /**
+     * @return a trapezoid mesh which is going to be used as indicator for the
+     * shooting
+     */
     private Mesh createTrapezoid() {
         Mesh trapezoid = new Mesh();
 
@@ -483,6 +509,9 @@ public class ClientMain extends SimpleApplication {
         return trapezoid;
     }
 
+    /**
+     * Sets the light to see the scene
+     */
     private void setUpLight() {
         // We add light so we see the scene
         AmbientLight al = new AmbientLight();
@@ -586,13 +615,12 @@ public class ClientMain extends SimpleApplication {
                 getPlayer().getCharacterControl().setViewDirection(cam.getDirection());
                 Vector3f player_pos = getPlayer().getWorldTranslation();
                 getPlayer().setPosition(player_pos);
-                //cam.lookAtDirection(getPlayer().getCharacterControl().getViewDirection(), new Vector3f());
                 cam.setLocation(new Vector3f(player_pos.getX(), player_pos.getY() + 5f, player_pos.getZ()));
 
                 listener.setLocation(cam.getLocation());
                 listener.setRotation(cam.getRotation());
 
-                //send new state to server TODO: rotation
+                //send new state to server
                 sendMessage(new PlayerMoved(getPlayer().getPosition(),
                         quaternionToArray(getPlayer().getWorldRotation()),
                         getPlayer().getCharacterControl().getViewDirection(),
@@ -723,6 +751,10 @@ public class ClientMain extends SimpleApplication {
         super.destroy();
     }
 
+    /**
+     * @param q
+     * @return a Quaternion as a float array 
+     */
     private float[] quaternionToArray(Quaternion q) {
         float[] f = new float[4];
         f[0] = q.getX();
@@ -732,6 +764,10 @@ public class ClientMain extends SimpleApplication {
         return f;
     }
 
+    /**
+     * Get the direction where the player has been shooted from
+     * @param idShooting 
+     */
     private void getShootDirection(int idShooting) {
         Vector3f d1 = players.get(idShooting)
                 .getPosition().subtract(getPlayer().getPosition()).normalize();
@@ -760,6 +796,10 @@ public class ClientMain extends SimpleApplication {
         transparency = 1;
     }
 
+    /**
+     * Shows the message when the dead player has died
+     * @param idShooting 
+     */
     public void deadPlayerHUD(int idShooting) {
         deadPlayerText.setText("You have been killed by " + players.get(idShooting).getNickname()
                 + "\n Click left mouse button to respawn");
@@ -769,6 +809,9 @@ public class ClientMain extends SimpleApplication {
         ch.setText("");
     }
 
+    /**
+     * Init the chat HUD
+     */
     private void initChatHUD() {
         Material matBackground = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
@@ -806,6 +849,11 @@ public class ClientMain extends SimpleApplication {
         guiNode.attachChild(message);
     }
 
+    /**
+     * Put the message sent as parameter to the chat
+     * @param senderId
+     * @param message 
+     */
     public void putMessage(int senderId, String message) {
 
         boolean free = false;
@@ -848,10 +896,9 @@ public class ClientMain extends SimpleApplication {
         chatTimeout = CHAT_SECONDS;
     }
 
-    private Quaternion arrayToQuaternion(float[] r) {
-        return new Quaternion(r[0], r[1], r[2], r[3]);
-    }
-
+    /**
+     * Listener to the keyboard input for the player
+     */
     public class NicknameHUDListener implements RawInputListener {
 
         public void beginInput() {
@@ -899,6 +946,9 @@ public class ClientMain extends SimpleApplication {
         }
     }
 
+    /**
+     * Listener for the keyboard input of the chat
+     */
     public class ChatListener implements RawInputListener {
 
         public void beginInput() {
@@ -941,6 +991,9 @@ public class ClientMain extends SimpleApplication {
         }
     }
 
+    /**
+     * Listener for the server messages
+     */
     private class NetworkMessageListener implements MessageListener<Client> {
 
         public void messageReceived(Client source, Message m) {
@@ -961,6 +1014,11 @@ public class ClientMain extends SimpleApplication {
             }
         }
 
+        /**
+         * Process message m
+         * @param source
+         * @param m 
+         */
         public void processMessage(Client source, Message m) {
             if (m instanceof ConnectServer) {
                 ConnectServer message = (ConnectServer) m;
@@ -1093,7 +1151,6 @@ public class ClientMain extends SimpleApplication {
                         return null;
                     }
                 });
-                //TODO decrease health points?
             } else if (m instanceof DeadPlayer) {
                 final DeadPlayer message = (DeadPlayer) m;
 
@@ -1232,7 +1289,7 @@ public class ClientMain extends SimpleApplication {
                         final int id = i;
                         app.enqueue(new Callable() {
                             public Object call() throws Exception {
-                                //Set up the character. TODO does not include orientation (maybe not needed)
+                                //Set up the character
                                 setUpCharacter(id, teams[id], positions[id], nicknames[id], false);
                                 if (getPlayer().getPosition()!= null && 
                                         positions[id].distance(getPlayer().getPosition()) > Player.VIEW_DISTANCE) {
@@ -1316,12 +1373,10 @@ public class ClientMain extends SimpleApplication {
                                 }
                             }
                         }
-                        
                         return null;
                     }
                 });
             }
-
         }
     }
 }

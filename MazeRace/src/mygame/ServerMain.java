@@ -575,7 +575,6 @@ public class ServerMain extends SimpleApplication {
                         if (state == ServerGameState.GameRunning) {
                             CollisionResults results = new CollisionResults();
 
-                            //Must be changed by the coordinates and direction of the character
                             Ray ray = new Ray(position, direction);
                             terrain.collideWith(ray, results);
 

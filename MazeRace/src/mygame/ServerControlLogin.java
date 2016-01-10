@@ -12,8 +12,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 /**
- * Panel to control the server's game state.
+ * Panel to control the Login server's game state.
  * 
+ * @authors Alejandro Marquez, Bjorn van der Laan, Dominik Gils
  */
 public class ServerControlLogin extends JFrame {
 
@@ -62,6 +63,10 @@ public class ServerControlLogin extends JFrame {
         setStateLabel(state);
     }
 
+    /**
+     * Set the state text to show in the Server Control box
+     * @param state 
+     */
     public static void setStateLabel(ServerGameState state) {
         stateLabel.setText("Current state: " + state.toString());
     }

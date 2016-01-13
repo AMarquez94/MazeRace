@@ -33,17 +33,13 @@ public class ServerControl extends JFrame {
         setStateLabel(ServerMain.getGameState());
         panel.add(stateLabel);
 
-        for (final ServerGameState state : ServerGameState.values()) {
-            JButton button = new JButton(state.toString());
-
-            button.addActionListener(new ActionListener() {
+        JButton button = new JButton(ServerGameState.GameRunning.toString());
+        button.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    changeServerState(state);
+                    changeServerState(ServerGameState.GameRunning);
                 }
             });
-
-            panel.add(button);
-        }
+        panel.add(button);
         this.add(panel);
         this.pack();
         this.setLocationRelativeTo(null);
